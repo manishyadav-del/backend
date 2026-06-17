@@ -1,0 +1,24 @@
+{
+  "name": "gobal-backend",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:migrate": "npm run db:migrate --workspace=apps/web",
+    "db:push": "npm run db:push --workspace=apps/web",
+    "db:studio": "npm run db:studio --workspace=apps/web"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "npm@10.0.0",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3"
+  }
+}

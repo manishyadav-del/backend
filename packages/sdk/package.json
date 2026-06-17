@@ -1,0 +1,24 @@
+{
+  "name": "@global-backend/next",
+  "version": "0.1.0",
+  "description": "SDK for connecting Next.js frontends to the Global Backend dashboard",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'No build step for now'",
+    "lint": "echo 'No lint step for now'"
+  },
+  "peerDependencies": {
+    "next": ">=15.0.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "keywords": [
+    "nextjs",
+    "cms",
+    "backend",
+    "seo",
+    "global-backend"
+  ],
+  "license": "MIT"
+}
