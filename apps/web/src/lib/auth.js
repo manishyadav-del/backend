@@ -12,14 +12,109 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
+import { prisma } from './prisma.js';
+
+/**
+ * Resolve all roles assigned to a user
+ * @param {string} userId 
+ * @returns {Promise<string[]>} array of role names
+ */
+export async function resolveUserRoles(userId) {
+  try {
+    const userRoles = await prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
+    return userRoles.map(ur => ur.role.name);
+  } catch (error) {
+    console.error('Error resolving user roles:', error);
+    return [];
+  }
+}
+
+/**
+ * Resolve all permissions for a user (combining roles + overrides)
+ * @param {string} userId 
+ * @returns {Promise<string[]>} array of permission strings like 'pages.view'
+ */
+export async function resolveUserPermissions(userId) {
+  try {
+    // 1. Fetch user's roles and permissions
+    const userRoles = await prisma.userRole.findMany({
+      where: { userId },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: { permission: true }
+            }
+          }
+        }
+      }
+    });
+
+    const permissionsMap = {};
+
+    // Map role-based permissions
+    for (const ur of userRoles) {
+      if (ur.role?.permissions) {
+        for (const rp of ur.role.permissions) {
+          if (rp.permission) {
+            const key = `${rp.permission.module}.${rp.permission.action}`;
+            permissionsMap[key] = true;
+          }
+        }
+      }
+    }
+
+    // 2. Fetch user-level permission overrides
+    const overrides = await prisma.userPermission.findMany({
+      where: { userId },
+      include: { permission: true }
+    });
+
+    for (const ov of overrides) {
+      if (ov.permission) {
+        const key = `${ov.permission.module}.${ov.permission.action}`;
+        if (ov.value === true) {
+          permissionsMap[key] = true;
+        } else {
+          delete permissionsMap[key];
+        }
+      }
+    }
+
+    return Object.keys(permissionsMap);
+  } catch (error) {
+    console.error('Error resolving user permissions:', error);
+    return [];
+  }
+}
+
+/**
+ * Helper to check if a user has a specific permission
+ * @param {string[]} userPermissions 
+ * @param {string} requiredPermission 
+ * @returns {boolean}
+ */
+export function hasPermission(userPermissions = [], requiredPermission) {
+  if (!userPermissions) return false;
+  return userPermissions.includes(requiredPermission);
+}
+
 /**
  * Sign a JWT token for a user
- * @param {{ id: string, email: string, role: string }} payload
+ * @param {{ id: string, email: string, role: string, permissions?: string[] }} payload
  * @returns {string} signed JWT
  */
 export function signToken(payload) {
   return jwt.sign(
-    { id: payload.id, email: payload.email, role: payload.role },
+    { 
+      id: payload.id, 
+      email: payload.email, 
+      role: payload.role, 
+      permissions: payload.permissions || [] 
+    },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
@@ -28,7 +123,7 @@ export function signToken(payload) {
 /**
  * Verify and decode a JWT token
  * @param {string} token
- * @returns {{ id: string, email: string, role: string } | null}
+ * @returns {{ id: string, email: string, role: string, permissions: string[] } | null}
  */
 export function verifyToken(token) {
   try {
@@ -42,7 +137,7 @@ export function verifyToken(token) {
  * Extract authenticated user from a Next.js request
  * Checks Authorization header first, then auth-token cookie
  * @param {Request} request
- * @returns {{ id: string, email: string, role: string } | null}
+ * @returns {{ id: string, email: string, role: string, permissions: string[] } | null}
  */
 export function getAuthUser(request) {
   // Check Authorization header

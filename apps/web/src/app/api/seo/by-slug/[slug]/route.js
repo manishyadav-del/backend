@@ -14,11 +14,8 @@ export async function GET(request, { params }) {
       where: {
         projectId_slug: { projectId: project.id, slug: decodedSlug }
       },
-      select: {
-        metaTitle: true,
-        metaDesc: true,
-        canonicalUrl: true,
-        ogImage: true,
+      include: {
+        seo: true
       }
     });
 
@@ -26,7 +23,17 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ seo: page });
+    return NextResponse.json({
+      seo: page.seo ? {
+        metaTitle: page.seo.metaTitle,
+        metaDescription: page.seo.metaDescription,
+        urlSlug: page.seo.urlSlug,
+        canonical: page.seo.canonical,
+        ogImage: page.seo.ogImage,
+        robots: page.seo.robots,
+        llmTxt: page.seo.llmTxt,
+      } : null
+    });
   } catch (error) {
     console.error('Get SEO error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

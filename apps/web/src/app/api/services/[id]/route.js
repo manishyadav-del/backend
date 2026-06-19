@@ -32,7 +32,7 @@ export async function PUT(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { title, description, image, ctaText, ctaLink, sortOrder, isVisible, faqIds } = body;
 
@@ -85,7 +85,7 @@ export async function DELETE(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = await params;
 
     await prisma.service.delete({
       where: { id },

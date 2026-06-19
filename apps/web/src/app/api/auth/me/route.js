@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import prisma from '@/lib/prisma.js';
+import { getAuthUser, resolveUserRoles, resolveUserPermissions } from '@/lib/auth.js';
+import { prisma } from '@/lib/prisma.js';
 
 export async function GET(request) {
   const user = getAuthUser(request);
@@ -26,5 +26,15 @@ export async function GET(request) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ user: dbUser });
-}
+  // Resolve DB-driven roles and permissions
+  const roles = await resolveUserRoles(dbUser.id);
+  const permissions = await resolveUserPermissions(dbUser.id);
+
+  return NextResponse.json({ 
+    user: {
+      ...dbUser,
+      roles,
+      permissions,
+    }
+  });
+}

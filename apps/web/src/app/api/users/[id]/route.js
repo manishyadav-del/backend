@@ -52,6 +52,16 @@ export async function PUT(request, { params }) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
+  // Only Super Admin can edit Super Admin accounts
+  if (existingUser.role === 'Super Admin' && authUser.role !== 'Super Admin') {
+    return NextResponse.json({ error: 'Only Super Admin can edit Super Admin accounts' }, { status: 403 });
+  }
+
+  // Only Super Admin can promote a user to Super Admin
+  if (role === 'Super Admin' && authUser.role !== 'Super Admin') {
+    return NextResponse.json({ error: 'Only Super Admin can assign the Super Admin role' }, { status: 403 });
+  }
+
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (role !== undefined) updateData.role = role;
@@ -102,6 +112,11 @@ export async function DELETE(request, { params }) {
   const user = await prisma.user.findUnique({ where: { id: params.id } });
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  // Only Super Admin can delete Super Admin accounts
+  if (user.role === 'Super Admin' && authUser.role !== 'Super Admin') {
+    return NextResponse.json({ error: 'Only Super Admin can delete Super Admin accounts' }, { status: 403 });
   }
 
   await prisma.user.delete({ where: { id: params.id } });

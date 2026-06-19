@@ -29,11 +29,21 @@ export async function GET(request) {
       twoFactorEnabled: true,
       createdAt: true,
       updatedAt: true,
+      roles: {
+        include: { role: true },
+      },
     },
   });
 
-  return NextResponse.json({ users });
+  // Flatten roles to a simple roles array per user
+  const usersWithRoles = users.map((u) => ({
+    ...u,
+    roles: u.roles.map((ur) => ur.role),
+  }));
+
+  return NextResponse.json({ users: usersWithRoles });
 }
+
 
 // CREATE user
 export async function POST(request) {
@@ -43,7 +53,7 @@ export async function POST(request) {
   }
 
   const body = await request.json();
-  const { email, password, name, role } = body;
+  const { email, password, name, roleId } = body;
 
   if (!email || !password) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
@@ -54,6 +64,20 @@ export async function POST(request) {
     return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
   }
 
+  // Validate role
+  let role = null;
+  if (roleId) {
+    role = await prisma.role.findUnique({ where: { id: roleId } });
+    if (!role) {
+      return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+    }
+  }
+
+  // Only Super Admin can assign the Super Admin role
+  if (role?.name === 'Super Admin' && authUser.role !== 'Super Admin') {
+    return NextResponse.json({ error: 'Only Super Admin can assign the Super Admin role' }, { status: 403 });
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await prisma.user.create({
@@ -61,7 +85,13 @@ export async function POST(request) {
       email,
       password: hashedPassword,
       name,
-      role: role || 'viewer',
+      role: role?.name || 'viewer',
+      // Assign RBAC role via relation
+      ...(role && {
+        roles: {
+          create: [{ roleId: role.id }],
+        },
+      }),
     },
     select: {
       id: true,
@@ -78,4 +108,4 @@ export async function POST(request) {
   await logActivity(authUser.id, 'user.created', 'User', user.id, `Created user ${email}`);
 
   return NextResponse.json({ user }, { status: 201 });
-}
+}

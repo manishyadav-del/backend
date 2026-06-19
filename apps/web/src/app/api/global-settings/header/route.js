@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth.js';
 import prisma from '@/lib/prisma.js';
+import { revalidateTag } from 'next/cache';
 
 export async function GET(request) {
   const user = getAuthUser(request);
@@ -35,6 +36,9 @@ export async function PUT(request) {
       update: { headerSettings: JSON.stringify(headerConfig) },
       create: { projectId, headerSettings: JSON.stringify(headerConfig) },
     });
+
+    // Invalidate cached global settings on frontend
+    revalidateTag('global-settings');
 
     await prisma.activityLog.create({
       data: { userId: user.id, action: 'settings.header_updated', entity: 'GlobalSetting', entityId: settings.id, details: 'Header builder settings saved' },

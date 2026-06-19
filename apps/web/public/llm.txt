@@ -1,0 +1,10 @@
+# Global Backend Integration Layer & RBAC System
+
+This platform provides a comprehensive full-stack administrative dashboard system built using Next.js, Prisma, and React. 
+
+## Key System Modules
+- **Admin Access & Roles**: Dynamic RBAC role allocation and override system.
+- **Page Builder**: Custom layouts, section editing, and real-time page canvas rendering.
+- **SEO & Tracking**: Global settings, analytics injectors, tag manager, and sitemaps.
+- **Service Management**: CRUD controls for product catalog offerings.
+- **Security & Backups**: Dynamic rate limiting, IP blocking, log monitoring, and database dump recovery.

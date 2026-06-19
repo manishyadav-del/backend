@@ -20,6 +20,14 @@ export async function GET(request, { params }) {
           slug: decodedSlug,
         },
       },
+      include: {
+        seo: true,
+        schema: true,
+        sections_rel: {
+          where: { isDeleted: false, isVisible: true },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
     });
 
     if (!page) {
@@ -29,15 +37,15 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Only expose published pages to frontend websites
-    if (page.status !== 'PUBLISHED') {
+    // Only expose published pages to frontend websites (case-insensitive check)
+    if (page.status.toUpperCase() !== 'PUBLISHED') {
       return NextResponse.json(
         { error: 'Page not published' },
         { status: 404 }
       );
     }
 
-    const globalSettings = await prisma.globalSettings.findUnique({
+    const globalSettings = await prisma.globalSetting.findUnique({
       where: {
         projectId: project.id,
       },
@@ -49,38 +57,39 @@ export async function GET(request, { params }) {
         slug: page.slug,
         title: page.title,
         status: page.status,
-        isDynamic: page.isDynamic,
-        lastSyncedAt: page.lastSyncedAt,
+        isDynamic: page.slug.includes('[') && page.slug.includes(']'),
         createdAt: page.createdAt,
         updatedAt: page.updatedAt,
       },
 
-      seo: {
-        metaTitle: page.metaTitle,
-        metaDesc: page.metaDesc,
-        canonicalUrl: page.canonicalUrl,
-        ogImage: page.ogImage,
-      },
+      seo: page.seo ? {
+        metaTitle: page.seo.metaTitle,
+        metaDesc: page.seo.metaDescription,
+        canonicalUrl: page.seo.canonical,
+        ogImage: page.seo.ogImage,
+        robots: page.seo.robots,
+        llmTxt: page.seo.llmTxt,
+      } : null,
 
-      contentBlocks: page.contentBlocks || [],
+      contentBlocks: page.sections_rel || [],
 
-      jsonLdSchema: page.jsonLdSchema || null,
+      jsonLdSchema: page.schema ? page.schema.map(s => {
+        try {
+          return typeof s.content === 'string' ? JSON.parse(s.content) : s.content;
+        } catch {
+          return s.content;
+        }
+      }) : [],
 
       globalSettings: globalSettings
         ? {
-            siteName: globalSettings.siteName,
+            siteName: project.name,
             favicon: globalSettings.favicon,
-            primaryColor: globalSettings.primaryColor,
-
-            headerConfig: globalSettings.headerConfig,
-
-            footerConfig: globalSettings.footerConfig,
-
-            gaTrackingId: globalSettings.gaTrackingId,
-
-            clarityTrackingId: globalSettings.clarityTrackingId,
-
-            customHeadScripts: globalSettings.customHeadScripts,
+            primaryColor: globalSettings.brandColor,
+            headerConfig: globalSettings.headerSettings ? JSON.parse(globalSettings.headerSettings) : null,
+            footerConfig: globalSettings.footerSettings ? JSON.parse(globalSettings.footerSettings) : null,
+            gaTrackingId: globalSettings.analytics ? JSON.parse(globalSettings.analytics).gaId : null,
+            clarityTrackingId: globalSettings.analytics ? JSON.parse(globalSettings.analytics).clarityId : null,
           }
         : null,
     });

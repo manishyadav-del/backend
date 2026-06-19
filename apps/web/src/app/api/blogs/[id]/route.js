@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = await params;
 
     const blog = await prisma.blog.findUnique({
       where: { id },
@@ -31,7 +31,7 @@ export async function PUT(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { title, content, excerpt, slug, category, featuredImage, author, status, publishedAt, scheduledAt, seoTitle, seoDescription } = body;
 
@@ -90,7 +90,7 @@ export async function DELETE(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = await params;
 
     await prisma.blog.delete({
       where: { id },

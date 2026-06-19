@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-// Admin menu groups (full access)
-const adminMenuGroups = [
+// Full menu definition — each item declares the permission required to see it
+const allMenuGroups = [
   {
     id: 'dashboard',
     label: 'Dashboard',
     icon: '📊',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '📊' },
+      { label: 'Dashboard', href: '/dashboard', icon: '📊', permission: null },
     ],
   },
   {
@@ -19,10 +19,10 @@ const adminMenuGroups = [
     label: 'Content Management',
     icon: '🌐',
     items: [
-      { label: 'Pages', href: '/dashboard/pages', icon: '📄' },
-      { label: 'Services', href: '/dashboard/services', icon: '🛠️' },
-      { label: 'Blog', href: '/dashboard/blog', icon: '📝' },
-      { label: 'Media', href: '/dashboard/media', icon: '🖼️' },
+      { label: 'Pages', href: '/dashboard/pages', icon: '📄', permission: 'pages.view' },
+      { label: 'Services', href: '/dashboard/services', icon: '🛠️', permission: 'services.view' },
+      { label: 'Blog', href: '/dashboard/blog', icon: '📝', permission: 'blog.view' },
+      { label: 'Media', href: '/dashboard/media', icon: '🖼️', permission: 'media.view' },
     ],
   },
   {
@@ -30,10 +30,10 @@ const adminMenuGroups = [
     label: 'Marketing & Leads',
     icon: '🎯',
     items: [
-      { label: 'CTA / Leads', href: '/dashboard/cta', icon: '🎯' },
-      { label: 'Forms', href: '/dashboard/forms', icon: '📋' },
-      { label: 'Contacts', href: '/dashboard/contacts', icon: '📞' },
-      { label: 'Email Settings', href: '/dashboard/email', icon: '📧' },
+      { label: 'CTA / Leads', href: '/dashboard/cta', icon: '🎯', permission: 'leads.view' },
+      { label: 'Forms', href: '/dashboard/forms', icon: '📋', permission: 'forms.view' },
+      { label: 'Contacts', href: '/dashboard/contacts', icon: '📞', permission: 'contacts.view' },
+      { label: 'Email Settings', href: '/dashboard/email', icon: '📧', permission: 'settings.view' },
     ],
   },
   {
@@ -41,9 +41,9 @@ const adminMenuGroups = [
     label: 'Analytics',
     icon: '📈',
     items: [
-      { label: 'Analytics', href: '/dashboard/analytics', icon: '📈' },
-      { label: 'Live Visitors', href: '/dashboard/live', icon: '👁️' },
-      { label: 'Leads', href: '/dashboard/leads', icon: '💼' },
+      { label: 'Analytics', href: '/dashboard/analytics', icon: '📈', permission: 'analytics.view' },
+      { label: 'Live Visitors', href: '/dashboard/live', icon: '👁️', permission: 'analytics.view' },
+      { label: 'Leads', href: '/dashboard/leads', icon: '💼', permission: 'leads.view' },
     ],
   },
   {
@@ -51,10 +51,10 @@ const adminMenuGroups = [
     label: 'Website Builder',
     icon: '🏗️',
     items: [
-      { label: 'Header Builder', href: '/dashboard/header-builder', icon: '🔝' },
-      { label: 'Footer Builder', href: '/dashboard/footer-builder', icon: '🔚' },
-      { label: 'Navigation', href: '/dashboard/navigation', icon: '🧭' },
-      { label: 'Redirects', href: '/dashboard/redirects', icon: '🔀' },
+      { label: 'Header Builder', href: '/dashboard/header-builder', icon: '🔝', permission: 'settings.view' },
+      { label: 'Footer Builder', href: '/dashboard/footer-builder', icon: '🔚', permission: 'settings.view' },
+      { label: 'Navigation', href: '/dashboard/navigation', icon: '🧭', permission: 'settings.view' },
+      { label: 'Redirects', href: '/dashboard/redirects', icon: '🔀', permission: 'redirects.view' },
     ],
   },
   {
@@ -62,9 +62,9 @@ const adminMenuGroups = [
     label: 'Reputation & Content',
     icon: '⭐',
     items: [
-      { label: 'Testimonials', href: '/dashboard/testimonials', icon: '⭐' },
-      { label: 'FAQ', href: '/dashboard/faqs', icon: '❓' },
-      { label: 'Team', href: '/dashboard/team', icon: '👥' },
+      { label: 'Testimonials', href: '/dashboard/testimonials', icon: '⭐', permission: 'testimonials.view' },
+      { label: 'FAQ', href: '/dashboard/faqs', icon: '❓', permission: 'faq.view' },
+      { label: 'Team', href: '/dashboard/team', icon: '👥', permission: 'pages.view' },
     ],
   },
   {
@@ -72,8 +72,8 @@ const adminMenuGroups = [
     label: 'SEO & Performance',
     icon: '🔍',
     items: [
-      { label: 'SEO', href: '/dashboard/seo', icon: '🔍' },
-      { label: 'Performance', href: '/dashboard/performance', icon: '⚡' },
+      { label: 'SEO', href: '/dashboard/seo', icon: '🔍', permission: 'seo.view' },
+      { label: 'Performance', href: '/dashboard/performance', icon: '⚡', permission: 'security.view' },
     ],
   },
   {
@@ -81,10 +81,10 @@ const adminMenuGroups = [
     label: 'Security & Compliance',
     icon: '🛡️',
     items: [
-      { label: 'Security', href: '/dashboard/security', icon: '🔒' },
-      { label: 'Login History', href: '/dashboard/login-history', icon: '🕐' },
-      { label: 'Compliance', href: '/dashboard/compliance', icon: '✅' },
-      { label: 'Backup', href: '/dashboard/backup', icon: '💾' },
+      { label: 'Security', href: '/dashboard/security', icon: '🔒', permission: 'security.view' },
+      { label: 'Login History', href: '/dashboard/login-history', icon: '🕐', permission: 'security.view' },
+      { label: 'Compliance', href: '/dashboard/compliance', icon: '✅', permission: 'security.view' },
+      { label: 'Backup', href: '/dashboard/backup', icon: '💾', permission: 'security.view' },
     ],
   },
   {
@@ -92,8 +92,8 @@ const adminMenuGroups = [
     label: 'User Management',
     icon: '👥',
     items: [
-      { label: 'Users', href: '/dashboard/users', icon: '👤' },
-      { label: 'Notifications', href: '/dashboard/notifications', icon: '🔔' },
+      { label: 'Users', href: '/dashboard/users', icon: '👤', permission: 'users.view' },
+      { label: 'Notifications', href: '/dashboard/notifications', icon: '🔔', permission: 'notifications.view' },
     ],
   },
   {
@@ -101,8 +101,8 @@ const adminMenuGroups = [
     label: 'System',
     icon: '⚙️',
     items: [
-      { label: 'Settings', href: '/dashboard/settings', icon: '⚙️' },
-      { label: 'Dev Tools', href: '/dashboard/dev-tools', icon: '🛠️' },
+      { label: 'Settings', href: '/dashboard/settings', icon: '⚙️', permission: 'settings.view' },
+      { label: 'Dev Tools', href: '/dashboard/dev-tools', icon: '🛠️', permission: 'security.view' },
     ],
   },
   {
@@ -110,38 +110,7 @@ const adminMenuGroups = [
     label: 'Legal',
     icon: '⚖️',
     items: [
-      { label: 'Legal', href: '/dashboard/legal', icon: '⚖️' },
-    ],
-  },
-];
-
-// User menu groups (limited access - essential content only)
-const userMenuGroups = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: '📊',
-    items: [
-      { label: 'My Dashboard', href: '/user-dashboard', icon: '📊' },
-    ],
-  },
-  {
-    id: 'content',
-    label: 'Content',
-    icon: '🌐',
-    items: [
-      { label: 'Pages', href: '/dashboard/pages', icon: '📄' },
-      { label: 'Services', href: '/dashboard/services', icon: '🛠️' },
-      { label: 'Blog', href: '/dashboard/blog', icon: '📝' },
-    ],
-  },
-  {
-    id: 'notifications',
-    label: 'Updates',
-    icon: '🔔',
-    items: [
-      { label: 'Notifications', href: '/dashboard/notifications', icon: '🔔' },
-      { label: 'Activity', href: '/dashboard/activity', icon: '📋' },
+      { label: 'Legal', href: '/dashboard/legal', icon: '⚖️', permission: 'pages.view' },
     ],
   },
 ];
@@ -149,99 +118,30 @@ const userMenuGroups = [
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileToggle }) {
   const pathname = usePathname();
   const [expandedGroups, setExpandedGroups] = useState({});
-  const [userRole, setUserRole] = useState('admin');
+  const [userPermissions, setUserPermissions] = useState(null); // null = loading
 
   useEffect(() => {
-    // Fetch user role to determine which menu to show
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (data.user) setUserRole(data.user.role);
+        if (data.user?.permissions) {
+          setUserPermissions(data.user.permissions);
+        } else {
+          setUserPermissions([]);
+        }
       })
-      .catch(() => {});
+      .catch(() => setUserPermissions([]));
   }, []);
 
-  // Select menu groups based on role
-  const menuGroups = (() => {
-    if (userRole === 'admin') {
-      return adminMenuGroups;
-    }
-    
-    if (userRole === 'manager') {
-      // Show all except users and security, and remove dev tools from system group
-      return adminMenuGroups
-        .filter(g => g.id !== 'users' && g.id !== 'security')
-        .map(g => {
-          if (g.id === 'system') {
-            return {
-              ...g,
-              items: g.items.filter(item => item.label !== 'Dev Tools')
-            };
-          }
-          return g;
-        });
-    }
-    
-    if (userRole === 'editor' || userRole === 'viewer') {
-      // Editor & Viewer Menu (Access to pages, blogs, media, FAQs, testimonials, settings)
-      return [
-        {
-          id: 'dashboard',
-          label: 'Dashboard',
-          icon: '📊',
-          items: [
-            { label: 'My Dashboard', href: '/user-dashboard', icon: '📊' },
-          ],
-        },
-        {
-          id: 'content',
-          label: 'Content',
-          icon: '🌐',
-          items: [
-            { label: 'Pages', href: '/dashboard/pages', icon: '📄' },
-            { label: 'Blog', href: '/dashboard/blog', icon: '📝' },
-            { label: 'Media', href: '/dashboard/media', icon: '🖼️' },
-          ],
-        },
-        {
-          id: 'reputation',
-          label: 'Reputation',
-          icon: '⭐',
-          items: [
-            { label: 'Testimonials', href: '/dashboard/testimonials', icon: '⭐' },
-            { label: 'FAQ', href: '/dashboard/faqs', icon: '❓' },
-            { label: 'Team', href: '/dashboard/team', icon: '👥' },
-          ],
-        },
-        {
-          id: 'seo',
-          label: 'SEO',
-          icon: '🔍',
-          items: [
-            { label: 'SEO', href: '/dashboard/seo', icon: '🔍' },
-          ],
-        },
-        {
-          id: 'updates',
-          label: 'Updates',
-          icon: '🔔',
-          items: [
-            { label: 'Notifications', href: '/dashboard/notifications', icon: '🔔' },
-          ],
-        },
-        {
-          id: 'system',
-          label: 'System',
-          icon: '⚙️',
-          items: [
-            { label: 'Settings', href: '/dashboard/settings', icon: '⚙️' }
-          ]
-        }
-      ];
-    }
-    
-    return userMenuGroups;
-  })();
+  // Filter menu groups based on user permissions
+  const menuGroups = (userPermissions === null ? [] : allMenuGroups)
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.permission || userPermissions.includes(item.permission)
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const toggleGroup = (groupId) => {
     setExpandedGroups((prev) => ({
@@ -296,50 +196,56 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileToggl
       </button>
 
       <nav className="sidebar-nav">
-        {menuGroups.map((group) => {
-          const isActive = isGroupActive(group);
-          const isExpanded = expandedGroups[group.id] || isActive;
+        {userPermissions === null ? (
+          <div className="sidebar-loading" style={{ padding: '1rem', opacity: 0.4, fontSize: '0.8rem', textAlign: 'center' }}>
+            Loading...
+          </div>
+        ) : (
+          menuGroups.map((group) => {
+            const isActive = isGroupActive(group);
+            const isExpanded = expandedGroups[group.id] || isActive;
 
-          return (
-            <div key={group.id} className="sidebar-group">
-              {!collapsed && (
-                <button
-                  className="sidebar-group-header"
-                  onClick={() => toggleGroup(group.id)}
-                  aria-expanded={isExpanded}
-                >
-                  <span className="sidebar-group-icon">{group.icon}</span>
-                  <span className="sidebar-group-label">{group.label}</span>
-                  <span className={`sidebar-group-arrow ${isExpanded ? 'expanded' : ''}`}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </span>
-                </button>
-              )}
+            return (
+              <div key={group.id} className="sidebar-group">
+                {!collapsed && (
+                  <button
+                    className="sidebar-group-header"
+                    onClick={() => toggleGroup(group.id)}
+                    aria-expanded={isExpanded}
+                  >
+                    <span className="sidebar-group-icon">{group.icon}</span>
+                    <span className="sidebar-group-label">{group.label}</span>
+                    <span className={`sidebar-group-arrow ${isExpanded ? 'expanded' : ''}`}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </span>
+                  </button>
+                )}
 
-              {isExpanded && (
-                <div className="sidebar-group-items">
-                  {group.items.map((item) => {
-                    const active = isItemActive(item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`sidebar-link ${active ? 'active' : ''}`}
-                        title={collapsed ? item.label : undefined}
-                      >
-                        <span className="sidebar-icon">{item.icon}</span>
-                        {!collapsed && <span className="sidebar-label">{item.label}</span>}
-                        {active && <span className="active-indicator" />}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                {isExpanded && (
+                  <div className="sidebar-group-items">
+                    {group.items.map((item) => {
+                      const active = isItemActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`sidebar-link ${active ? 'active' : ''}`}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          <span className="sidebar-icon">{item.icon}</span>
+                          {!collapsed && <span className="sidebar-label">{item.label}</span>}
+                          {active && <span className="active-indicator" />}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </nav>
     </aside>
   );

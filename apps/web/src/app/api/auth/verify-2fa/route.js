@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import prisma from '@/lib/prisma.js';
+import { prisma } from '@/lib/prisma.js';
+import { signToken, resolveUserRoles, resolveUserPermissions } from '@/lib/auth.js';
+import { logAuditEvent } from '@/lib/auditLog.js';
 
 export async function POST(request) {
   try {
     const body = await request.json();
     const { email, code } = body;
+
+    const ip = request.ip || request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
 
     if (!email || !code) {
       return NextResponse.json({ error: 'Email and code required' }, { status: 400 });
@@ -22,14 +25,33 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid verification code' }, { status: 401 });
     }
 
-    const { signToken } = await import('@/lib/auth.js');
-    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    // Resolve DB-driven role and permissions
+    const roles = await resolveUserRoles(user.id);
+    const primaryRole = roles[0] || 'Client User';
+    const userPermissions = await resolveUserPermissions(user.id);
+
+    await logAuditEvent({
+      userId: user.id,
+      action: 'LOGIN_2FA',
+      module: 'auth',
+      ipAddress: ip,
+    });
+
+    const token = signToken({
+      id: user.id,
+      email: user.email,
+      role: primaryRole,
+      permissions: userPermissions,
+    });
+
+    const redirectUrl = primaryRole === 'Client User' ? '/user-dashboard' : '/dashboard';
 
     const response = NextResponse.json({ 
       success: true, 
-      role: user.role,
-      redirectUrl: user.role === 'admin' ? '/dashboard' : '/user-dashboard',
-      user: { id: user.id, email: user.email, role: user.role } 
+      role: primaryRole,
+      permissions: userPermissions,
+      redirectUrl,
+      user: { id: user.id, email: user.email, role: primaryRole } 
     });
 
     response.cookies.set({

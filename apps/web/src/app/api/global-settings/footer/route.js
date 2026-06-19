@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth.js';
 import prisma from '@/lib/prisma.js';
+import { revalidateTag } from 'next/cache';
 
 export async function GET(request) {
   const user = getAuthUser(request);
@@ -35,6 +36,9 @@ export async function PUT(request) {
       update: { footerSettings: JSON.stringify(footerConfig) },
       create: { projectId, footerSettings: JSON.stringify(footerConfig) },
     });
+
+    // Invalidate cached global settings on frontend
+    revalidateTag('global-settings');
 
     await prisma.activityLog.create({
       data: { userId: user.id, action: 'settings.footer_updated', entity: 'GlobalSetting', entityId: settings.id, details: 'Footer builder settings saved' },

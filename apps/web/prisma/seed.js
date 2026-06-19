@@ -7,21 +7,140 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
-  // 1. Create Admin User
-  const adminPassword = await bcrypt.hash('admin123', 10);
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@gobal.com' },
-    update: {},
-    create: {
-      id: 'clx1234567890abcdef01',
-      email: 'admin@gobal.com',
-      password: adminPassword,
-      name: 'Admin User',
-      role: 'admin',
-      twoFactorEnabled: false,
-    },
+  // 1. Create Permissions & Roles
+  const modulesActions = {
+    users: ['view', 'create', 'edit', 'delete'],
+    roles: ['view', 'create', 'edit', 'delete'],
+    pages: ['view', 'create', 'edit', 'publish', 'delete'],
+    seo: ['view', 'edit'],
+    blog: ['view', 'create', 'edit', 'publish', 'delete'],
+    services: ['view', 'create', 'edit', 'delete'],
+    media: ['view', 'upload', 'replace', 'delete'],
+    leads: ['view', 'export', 'edit_status'],
+    forms: ['view', 'export'],
+    analytics: ['view'],
+    security: ['view', 'manage'],
+    settings: ['view', 'edit'],
+    testimonials: ['view', 'create', 'edit', 'delete'],
+    faq: ['view', 'create', 'edit', 'delete'],
+    redirects: ['view', 'create', 'edit', 'delete'],
+    contacts: ['view', 'create', 'edit', 'delete'],
+    notifications: ['view']
+  };
+
+  console.log('Upserting permissions...');
+  const dbPermissions = [];
+  for (const [moduleName, actions] of Object.entries(modulesActions)) {
+    for (const actionName of actions) {
+      const perm = await prisma.permission.upsert({
+        where: {
+          module_action: { module: moduleName, action: actionName }
+        },
+        update: {},
+        create: {
+          module: moduleName,
+          action: actionName
+        }
+      });
+      dbPermissions.push(perm);
+    }
+  }
+
+  console.log('Upserting roles...');
+  const rolesData = [
+    { name: 'Super Admin', description: 'Super administrator with full system access' },
+    { name: 'Content Manager', description: 'Manages pages, blogs, media, SEO, testimonials, and FAQ' },
+    { name: 'Sales Manager', description: 'Manages leads, form submissions, contacts, and notifications' },
+    { name: 'SEO Manager', description: 'Manages search engine optimization, redirects, and analytics' },
+    { name: 'Client User', description: 'Assigned client user with resource-specific access' },
+  ];
+
+  const dbRoles = {};
+  for (const roleInfo of rolesData) {
+    const role = await prisma.role.upsert({
+      where: { name: roleInfo.name },
+      update: { description: roleInfo.description },
+      create: roleInfo
+    });
+    dbRoles[roleInfo.name] = role;
+  }
+
+  // Helper to assign permissions to roles
+  async function assignPermissionsToRole(roleId, moduleNames) {
+    await prisma.rolePermission.deleteMany({ where: { roleId } });
+    const perms = await prisma.permission.findMany({
+      where: {
+        module: { in: moduleNames }
+      }
+    });
+    await prisma.rolePermission.createMany({
+      data: perms.map(p => ({
+        roleId,
+        permissionId: p.id
+      }))
+    });
+  }
+
+  console.log('Mapping permissions to roles...');
+  // Super Admin gets all permissions
+  const allPerms = await prisma.permission.findMany();
+  await prisma.rolePermission.deleteMany({ where: { roleId: dbRoles['Super Admin'].id } });
+  await prisma.rolePermission.createMany({
+    data: allPerms.map(p => ({
+      roleId: dbRoles['Super Admin'].id,
+      permissionId: p.id
+    }))
   });
-  console.log(`Created admin user: ${adminUser.email} (password: admin123)`);
+
+  await assignPermissionsToRole(dbRoles['Content Manager'].id, ['pages', 'blog', 'media', 'seo', 'testimonials', 'faq']);
+  await assignPermissionsToRole(dbRoles['Sales Manager'].id, ['leads', 'forms', 'contacts', 'notifications']);
+  await assignPermissionsToRole(dbRoles['SEO Manager'].id, ['seo', 'redirects', 'analytics']);
+  await assignPermissionsToRole(dbRoles['Client User'].id, ['pages', 'services', 'media']);
+
+  console.log('Seeding role-based users...');
+  const usersToSeed = [
+    { email: 'admin@gobal.com', name: 'Admin User', roleName: 'Super Admin', pass: 'admin123' },
+    { email: 'superadmin@gobal.com', name: 'Super Admin User', roleName: 'Super Admin', pass: 'admin123' },
+    { email: 'contentmanager@gobal.com', name: 'Content Manager User', roleName: 'Content Manager', pass: 'manager123' },
+    { email: 'salesmanager@gobal.com', name: 'Sales Manager User', roleName: 'Sales Manager', pass: 'sales123' },
+    { email: 'seomanager@gobal.com', name: 'SEO Manager User', roleName: 'SEO Manager', pass: 'seo123' },
+    { email: 'clientuser@gobal.com', name: 'Client User User', roleName: 'Client User', pass: 'client123' },
+  ];
+
+  for (const u of usersToSeed) {
+    const hashedPass = await bcrypt.hash(u.pass, 10);
+    const legacyRoleMap = {
+      'Super Admin': 'admin',
+      'Content Manager': 'editor',
+      'Sales Manager': 'manager',
+      'SEO Manager': 'viewer',
+      'Client User': 'viewer'
+    };
+
+    const dbUser = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {
+        name: u.name,
+        password: hashedPass,
+        role: legacyRoleMap[u.roleName],
+      },
+      create: {
+        email: u.email,
+        name: u.name,
+        password: hashedPass,
+        role: legacyRoleMap[u.roleName],
+      }
+    });
+
+    const roleId = dbRoles[u.roleName].id;
+    await prisma.userRole.deleteMany({ where: { userId: dbUser.id } });
+    await prisma.userRole.create({
+      data: {
+        userId: dbUser.id,
+        roleId: roleId
+      }
+    });
+  }
 
   // 2. Create Demo Project
   const project = await prisma.project.upsert({
@@ -257,10 +376,34 @@ async function main() {
     },
   });
 
+  console.log('Assigning resources to Client User...');
+  const clientUser = await prisma.user.findUnique({ where: { email: 'clientuser@gobal.com' } });
+  if (clientUser) {
+    await prisma.userPage.deleteMany({ where: { userId: clientUser.id } });
+    await prisma.userPage.create({
+      data: {
+        userId: clientUser.id,
+        pageId: 'clx1234567890abcdef03', // Home Page
+      }
+    });
+
+    await prisma.userService.deleteMany({ where: { userId: clientUser.id } });
+    await prisma.userService.create({
+      data: {
+        userId: clientUser.id,
+        serviceId: 'clx1234567890abcdef07', // Web Development service
+      }
+    });
+    console.log(`Assigned resources to Client User (${clientUser.email})`);
+  }
+
   console.log('Seeding completed successfully!');
   console.log('Login credentials:');
-  console.log('  Email: admin@gobal.com');
-  console.log('  Password: admin123');
+  console.log('  Super Admin:      superadmin@gobal.com / admin123');
+  console.log('  Content Manager:  contentmanager@gobal.com / manager123');
+  console.log('  Sales Manager:    salesmanager@gobal.com / sales123');
+  console.log('  SEO Manager:      seomanager@gobal.com / seo123');
+  console.log('  Client User:      clientuser@gobal.com / client123');
 }
 
 main()

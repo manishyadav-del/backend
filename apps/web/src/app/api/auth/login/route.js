@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+import { signToken, resolveUserRoles, resolveUserPermissions } from '@/lib/auth.js';
+import { logAuditEvent } from '@/lib/auditLog.js';
 
 export async function POST(request) {
   try {
     const body = await request.json();
     const { email, password } = body;
+
+    const ip = request.ip || request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || '127.0.0.1';
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
@@ -27,32 +27,17 @@ export async function POST(request) {
         data: {
           userId: user.id,
           success: false,
+          ip: ip,
         },
       });
-      await prisma.activityLog.create({
-        data: {
-          userId: user.id,
-          action: 'FAILED_LOGIN_ATTEMPT',
-          details: `Failed login attempt for user: ${email}`,
-        },
+      await logAuditEvent({
+        userId: user.id,
+        action: 'FAILED_LOGIN',
+        module: 'auth',
+        ipAddress: ip,
       });
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
-
-    // Log successful login
-    await prisma.loginHistory.create({
-      data: {
-        userId: user.id,
-        success: true,
-      },
-    });
-    await prisma.activityLog.create({
-      data: {
-        userId: user.id,
-        action: 'LOGIN',
-        details: `User logged in: ${email}`,
-      },
-    });
 
     // Check if 2FA is enabled
     if (user.twoFactorEnabled) {
@@ -63,21 +48,45 @@ export async function POST(request) {
       });
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    // Fetch DB role and permissions
+    const roles = await resolveUserRoles(user.id);
+    const primaryRole = roles[0] || 'Client User';
+    const userPermissions = await resolveUserPermissions(user.id);
+
+    // Log successful login
+    await prisma.loginHistory.create({
+      data: {
+        userId: user.id,
+        success: true,
+        ip: ip,
+      },
+    });
+    await logAuditEvent({
+      userId: user.id,
+      action: 'LOGIN',
+      module: 'auth',
+      ipAddress: ip,
+    });
+
+    const token = signToken({
+      id: user.id,
+      email: user.email,
+      role: primaryRole,
+      permissions: userPermissions,
+    });
+
+    const redirectUrl = primaryRole === 'Client User' ? '/user-dashboard' : '/dashboard';
 
     const response = NextResponse.json({
       success: true,
-      role: user.role,
-      redirectUrl: user.role === 'admin' ? '/dashboard' : '/user-dashboard',
+      role: primaryRole,
+      permissions: userPermissions,
+      redirectUrl,
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: primaryRole,
         twoFactorEnabled: user.twoFactorEnabled,
       },
     });
