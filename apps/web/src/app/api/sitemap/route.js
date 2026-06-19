@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { validateApiKey, unauthorizedResponse } from '@/lib/apiKey.js';
-import prisma from '@/lib/prisma.js';
+import { prisma } from '@/lib/prisma.js';
 import { PAGE_STATUSES } from '@/lib/constants.js';
 
 export async function GET(request) {

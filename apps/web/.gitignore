@@ -1,11 +1,9 @@
 # Dependencies
-
 node_modules
 .pnp
 .pnp.js
 
 # Logs
-
 logs
 *.log
 npm-debug.log*
@@ -14,7 +12,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Environment Variables
-
 .env
 .env.local
 .env.development.local
@@ -23,69 +20,54 @@ pnpm-debug.log*
 .env.example
 
 # Next.js
-
 .next
 out
 build
 
 # Turborepo
-
 .turbo
 
-# Prisma
-
-prisma/dev.db
-prisma/dev.db-journal
+# Prisma (SQLite database files only, NOT migrations)
+prisma/*.db
+prisma/*.db-journal
 
 # Coverage
-
 coverage
 
 # Cache
-
 .cache
 .parcel-cache
 
 # OS Files
-
 .DS_Store
 Thumbs.db
 
 # IDE
-
 .vscode
 .idea
 
 # Generated files
-
 dist
 build
 *.tsbuildinfo
 
 # Temporary files
-
 tmp
 temp
 
 # Uploads
-
 uploads
 public/uploads
 
 # SDK Build
-
 packages/sdk/dist
 
-# Lock files (keep one)
-
+# Lock files (keep one - package-lock.json is checked in)
 # package-lock.json
-
 # yarn.lock
-
 # pnpm-lock.yaml
 
 # Misc
-
 .vercel
 *.pem
 *.key

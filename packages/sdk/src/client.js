@@ -32,12 +32,12 @@ export class GlobalBackendClient {
   async getPage(slug) {
     // encode slug to handle complex paths safely
     const encoded = encodeURIComponent(slug);
-    return this.fetch(`/pages/${encoded}`);
+    return this.fetch(`/pages/by-slug/${encoded}`);
   }
 
   async getSeo(slug) {
     const encoded = encodeURIComponent(slug);
-    return this.fetch(`/seo/${encoded}`);
+    return this.fetch(`/seo/by-slug/${encoded}`);
   }
 
   async getSitemap() {

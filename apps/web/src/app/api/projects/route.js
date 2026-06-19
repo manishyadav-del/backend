@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth.js';
-import prisma from '@/lib/prisma.js';
+import { prisma } from '@/lib/prisma.js';
 import { DEFAULT_HEADER_CONFIG, DEFAULT_FOOTER_CONFIG } from '@/lib/constants.js';
 
 export async function GET(request) {

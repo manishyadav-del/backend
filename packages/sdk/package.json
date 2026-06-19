@@ -4,6 +4,9 @@
   "description": "SDK for connecting Next.js frontends to the Global Backend dashboard",
   "main": "src/index.js",
   "type": "module",
+  "bin": {
+    "global-backend-sync": "./bin/sync.js"
+  },
   "scripts": {
     "build": "echo 'No build step for now'",
     "lint": "echo 'No lint step for now'"

@@ -453,20 +453,57 @@ export const config = {
 ## User Review Required
 
 > [!IMPORTANT]
-> **Database Choice**: This plan uses **MySQL** as the primary database with Prisma, as per your request.
+> **Implementation Scope**: The underlying API endpoints and database schemas for all requested features (Admin Access, Blogs, Media Library, Testimonials, SEO, etc.) have already been successfully scaffolded! The next massive phase is building the **Dashboard UI Pages** for each of these features.
 
-> [!IMPORTANT]
-> **Auth Strategy**: The plan uses **API Keys** for SDK↔API communication and **JWT** (cookie-based) for dashboard login. Do you want a simpler auth model for Phase 1, or is this approach correct?
+> [!WARNING]
+> Building the complete Dashboard UI for over 25 distinct modules is a substantial task. To ensure high quality and beautiful aesthetics as requested, I will break this down into smaller, focused tasks using a `task.md` file after you approve this plan.
 
-> [!IMPORTANT]
-> **Scope Confirmation**: This plan builds **Phase 1 (structure only)** first — all files scaffolded with skeleton code but no business logic. We then build each phase incrementally. Does this phased approach work for you?
+## Proposed Dashboard UI Architecture
 
-## Open Questions
+We will implement the following UI modules inside `apps/web/src/app/(dashboard)/projects/[projectId]/`. Each module will consist of a list view (table/grid) and detail/edit views with modern styling, micro-animations, and dynamic interactions.
 
-1. **Dashboard Auth**: Do you already have a user authentication system (e.g., NextAuth, Clerk) in mind for the dashboard, or should I build a simple email/password JWT auth?
+### 1. Content & Pages
+- **Page Management**: Edit Sections, Content, Add/Remove Sections, Banners, Draft/Publish.
+- **Service Management**: Add/Edit/Delete Service, Upload Images, FAQs, Sort Order.
+- **Blog / Resources**: Add/Edit/Delete Blog, Categories, Author, Draft/Publish, Schedule, SEO.
+- **Testimonials**: Add/Edit/Delete, Client Name, Image, Rating, Sort Order.
+- **FAQ Management**: Add/Edit/Delete, Assign to Page, Sort Order, Schema.
+- **Team Section**: Add/Edit/Delete Member, Photo, Bio, Social Links.
+- **Legal Pages**: Privacy Policy, Terms, Cookie Policy, Disclaimer.
 
-2. **Content Block Types**: What types of content blocks do you want to support initially? I've proposed: `hero`, `text`, `image`, `cta`, `banner`, `gallery`. Should I add or remove any?
+### 2. Marketing & SEO
+- **SEO Management**: SEO Title, Meta Desc, URL Slug, Canonical, OG Image, Robots.txt, Schema.
+- **Analytics & Tracking**: GA, Tag Manager, Clarity, Meta Pixel, LinkedIn Tag.
+- **CTA / Lead Capture**: Edit Text/Link, Popups, Newsletter, Lead Magnets.
+- **Lead Management**: Contact Info, Service Interest, Source Page, Status, Export.
+- **Live Visitor Dashboard**: Live Visitors, Pages Viewed, Location, Device Info.
 
-3. **Deployment Target**: Where do you plan to deploy? (Vercel, Railway, AWS, VPS?) This affects Prisma client configuration and env setup.
+### 3. Media & Assets
+- **Media Library**: Upload/Replace/Delete, Alt Text, Compress Images, Folder Management.
 
-4. **SDK Package Name**: The plan uses `@global-backend/next` as the package name. Would you prefer a different name or scope?
+### 4. Settings & Configuration
+- **Contact Details**: Phone, Email, Office Address, WhatsApp, Google Maps, Business Hours.
+- **Contact Forms**: View Submissions, Change Email, Auto Reply, Spam Protection.
+- **Website Settings**: Logo, Favicon, Brand Colors, Header/Footer Settings, Maintenance Mode.
+- **Header Builder**: Logo Control, Menu Selection, CTA Button, Sticky Toggle, Multi Layouts.
+- **Footer Builder**: Layout, Columns, Quick Links, Newsletter Form.
+- **Navigation / Menus**: Main Menu, Footer Menu, Reorder, Dropdowns.
+- **Email Settings**: SMTP Setup, Auto Reply Template, Admin Alerts.
+
+### 5. System & Admin
+- **Admin Access & Roles**: Add/Remove Users, Assign Roles, 2FA, Activity Log, Login History (Already partially done in `(dashboard)/users`).
+- **Security Controls**: Rate Limiting Config, Session Timeout, Audit Logs, IP Blocking.
+- **Backup & Restore**: Database Backup, Media Backup, Manual Download.
+- **Performance**: Lazy Loading config, Error Logs.
+- **404 & Redirects**: Custom 404, 301/302 Redirects, URL Mapping.
+- **Compliance**: Cookie Consent, Privacy Acceptance, Data Deletion.
+- **Notifications**: Dashboard Alerts, New Lead Alerts.
+- **Dev/Admin Tools**: API Keys, Integration Keys, Env Settings.
+
+## Verification Plan
+
+### Manual UI Verification
+1. I will implement a responsive, premium sidebar navigation to access all these modules.
+2. I will implement the UI for a batch of features, verify they connect to the scaffolded API routes correctly.
+3. I will provide a Walkthrough artifact for you to review the UI implementation in stages, ensuring the design aesthetics (vibrant colors, glassmorphism, dynamic animations) meet your standard of excellence.
+

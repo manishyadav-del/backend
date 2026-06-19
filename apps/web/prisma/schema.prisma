@@ -1,94 +1,565 @@
 generator client {
-provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-provider = "mysql"
-url      = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-enum PageStatus {
-DRAFT
-PUBLISHED
-ARCHIVED
-}
-
+// ========== AUTH & USERS ==========
 model User {
-id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("admin") // admin, editor, manager, viewer
+  avatar    String?
+  twoFactorSecret String?
+  twoFactorEnabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-email     String   @unique @db.VarChar(100)
-password  String
-name      String?  @db.VarChar(100)
-role      String   @default("admin") @db.VarChar(50)
-
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  activityLogs ActivityLog[]
+  loginHistory LoginHistory[]
+  passwordResetTokens PasswordResetToken[]
 }
 
+model LoginHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  ip        String?
+  userAgent String?
+  location  String?
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String?
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ========== PROJECTS / WEBSITES ==========
 model Project {
-id        Int      @id @default(autoincrement())
+  id          String   @id @default(cuid())
+  name        String
+  domain      String?
+  apiKey      String   @unique
+  description String?
+  logo        String?
+  favicon     String?
+  brandColor  String   @default("#3b82f6")
+  status      String   @default("active") // active, maintenance, inactive
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-name      String   @db.VarChar(150)
-
-slug      String   @unique @db.VarChar(100)
-domain    String?  @db.VarChar(255)
-
-apiKey    String   @unique @db.VarChar(100)
-
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
-
-pages          Page[]
-globalSettings GlobalSettings?
+  pages       Page[]
+  services    Service[]
+  blogs       Blog[]
+  media       Media[]
+  contacts    Contact[]
+  formSubmissions FormSubmission[]
+  testimonials Testimonial[]
+  faqs        FAQ[]
+  teamMembers TeamMember[]
+  legalPages  LegalPage[]
+  navigation  Navigation[]
+  leads       Lead[]
+  notifications Notification[]
+  backups     Backup[]
+  settings    GlobalSetting?
+  emailSettings EmailSetting?
+  redirects   Redirect[]
+  apiKeys     ApiKey[]
+  ctas        CTA[]
+  popups      Popup[]
+  visitorSessions VisitorSession[]
 }
 
+// ========== PAGE MANAGEMENT ==========
 model Page {
-id           Int      @id @default(autoincrement())
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id])
+  title         String
+  slug          String   @db.VarChar(50)
+  path          String?
+  status        String   @default("draft") @db.VarChar(20) // draft, published, archived, scheduled
+  content       String?  // JSON content blocks (legacy)
+  sections      String?  // JSON sections (legacy)
+  banner        String?
+  template      String?
+  sortOrder     Int      @default(0)
+  isHome        Boolean  @default(false)
+  draftContent  String?  // JSON draft content (legacy)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  publishedAt   DateTime?
+  scheduledAt   DateTime?
+  authorId      String?
+  visibility    String   @default("public") // public, private, password
+  password      String?
 
-projectId    Int
-project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  seo           SEO?
+  faqs          FAQ[]
+  schema        SchemaMarkup[]
+  sections_rel  PageSection[]
+  versions      PageVersion[]
+  drafts        PageDraft[]
 
-slug         String   @db.VarChar(150)
-title        String   @default("Untitled") @db.VarChar(255)
-
-status       PageStatus @default(DRAFT)
-
-isDynamic    Boolean  @default(false)
-
-metaTitle    String?  @db.VarChar(255)
-metaDesc     String?  @db.VarChar(500)
-canonicalUrl String?  @db.VarChar(500)
-ogImage      String?  @db.VarChar(500)
-
-jsonLdSchema Json?
-contentBlocks Json?
-
-lastSyncedAt DateTime?
-
-createdAt    DateTime @default(now())
-updatedAt    DateTime @updatedAt
-
-@@unique([projectId, slug])
+  @@unique([projectId, slug])
+  @@index([projectId, status])
 }
 
-model GlobalSettings {
-id                  Int      @id @default(autoincrement())
+// ========== SEO MANAGEMENT ==========
+model SEO {
+  id            String   @id @default(cuid())
+  pageId        String   @unique
+  page          Page     @relation(fields: [pageId], references: [id])
+  metaTitle     String?
+  metaDescription String?
+  urlSlug       String?
+  canonical     String?
+  ogImage       String?
+  robots        String?
+  llmTxt        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
 
-projectId           Int      @unique
-project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+model SchemaMarkup {
+  id        String   @id @default(cuid())
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id])
+  type      String   @default("json-ld")
+  content   String   // JSON-LD content
+  createdAt DateTime @default(now())
+}
 
-headerConfig        Json?
-footerConfig        Json?
+// ========== PAGE SECTIONS ==========
+model PageSection {
+  id          String   @id @default(cuid())
+  pageId      String
+  page        Page     @relation(fields: [pageId], references: [id])
+  type        String   // hero, about, services, features, cta, gallery, faq, testimonials, contact, custom, statistics, team
+  title       String?
+  content     String   // JSON content
+  settings    String?  // JSON settings (background, padding, etc.)
+  sortOrder   Int      @default(0)
+  isVisible   Boolean  @default(true)
+  isDeleted   Boolean  @default(false)
+  parentId    String?  // for nested sections
+  template    String?  // template variant
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-gaTrackingId        String?  @db.VarChar(100)
-clarityTrackingId   String?  @db.VarChar(100)
+  children    PageSection[] @relation("SectionChildren")
+  parent      PageSection?  @relation("SectionChildren", fields: [parentId], references: [id])
+}
 
-customHeadScripts   String?  @db.LongText
+// ========== PAGE VERSIONS ==========
+model PageVersion {
+  id          String   @id @default(cuid())
+  pageId      String
+  page        Page     @relation(fields: [pageId], references: [id])
+  version     Int
+  title       String
+  slug        String
+  content     String?  // JSON full page snapshot
+  sections    String?  // JSON sections snapshot
+  banner      String?
+  seo         String?  // JSON SEO snapshot
+  changeLog   String?  // description of changes
+  createdBy   String?
+  createdAt   DateTime @default(now())
 
-siteName            String?  @db.VarChar(255)
-favicon             String?  @db.VarChar(500)
-primaryColor        String?  @db.VarChar(20)
+  @@unique([pageId, version])
+}
 
-createdAt           DateTime @default(now())
-updatedAt           DateTime @updatedAt
+// ========== PAGE DRAFTS ==========
+model PageDraft {
+  id          String   @id @default(cuid())
+  pageId      String
+  page        Page     @relation(fields: [pageId], references: [id])
+  title       String
+  slug        String
+  content     String?  // JSON draft content
+  sections    String?  // JSON draft sections
+  banner      String?
+  seo         String?  // JSON draft SEO
+  changeLog   String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ========== SERVICE MANAGEMENT ==========
+model Service {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  title       String
+  description String?
+  image       String?
+  ctaText     String?
+  ctaLink     String?
+  sortOrder   Int      @default(0)
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  faqs        FAQ[]
+}
+
+// ========== BLOG / RESOURCES ==========
+model Blog {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  title       String
+  content     String?
+  excerpt     String?
+  slug        String    @unique
+  category    String?
+  featuredImage String?
+  author      String?
+  status      String    @default("draft") // draft, published, scheduled
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  seoTitle    String?
+  seoDescription String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId, createdAt])
+}
+
+// ========== MEDIA LIBRARY ==========
+model Media {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  filename    String
+  originalName String
+  url         String
+  thumbnail   String?
+  mimeType    String
+  size        Int
+  altText     String?
+  folder      String   @default("root")
+  width       Int?
+  height      Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ========== CONTACT DETAILS ==========
+model Contact {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  type        String   // phone, email, address, whatsapp, maps, hours, social
+  label       String?
+  value       String
+  icon        String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ========== FORM SUBMISSIONS ==========
+model FormSubmission {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  formType    String   @default("contact")
+  name        String?
+  email       String?
+  phone       String?
+  message     String?
+  data        String?  // JSON extra fields
+  status      String   @default("new") // new, read, replied, spam
+  notes       String?
+  leadId      String?
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+// ========== TESTIMONIALS ==========
+model Testimonial {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  clientName String
+  clientImage String?
+  rating    Int      @default(5)
+  content   String
+  isVisible Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== FAQ MANAGEMENT ==========
+model FAQ {
+  id        String   @id @default(cuid())
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+  pageId    String?
+  page      Page?    @relation(fields: [pageId], references: [id])
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
+  question  String
+  answer    String
+  sortOrder Int      @default(0)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== TEAM MEMBERS ==========
+model TeamMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  name      String
+  role      String?
+  photo     String?
+  bio       String?
+  socialLinks String? // JSON
+  sortOrder Int      @default(0)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== LEGAL PAGES ==========
+model LegalPage {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  type        String   // privacy, terms, cookies, disclaimer, refund
+  title       String
+  content     String?
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ========== NAVIGATION / MENUS ==========
+model Navigation {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  location  String   // main, footer, mobile
+  items     String   // JSON array of menu items
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== LEADS ==========
+model Lead {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  name        String?
+  email       String?
+  phone       String?
+  serviceInterest String?
+  sourcePage  String?
+  source      String?  // form, popup, chatbot, etc.
+  status      String   @default("new") // new, contacted, qualified, converted, lost
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId, createdAt])
+}
+
+// ========== NOTIFICATIONS ==========
+model Notification {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  type      String   // lead, form, blog, system
+  title     String
+  message   String?
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+// ========== BACKUPS ==========
+model Backup {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  type      String   // database, media, full
+  fileUrl   String?
+  size      Int?
+  status    String   @default("completed")
+  createdAt DateTime @default(now())
+}
+
+// ========== GLOBAL SETTINGS ==========
+model GlobalSetting {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id])
+  logo      String?
+  favicon   String?
+  brandColor String  @default("#3b82f6")
+  headerSettings String? // JSON
+  footerSettings String? // JSON
+  maintenanceMode Boolean @default(false)
+  defaultContact  String? // JSON
+  analytics  String? // JSON - GA, Clarity, etc IDs
+  cookieConsent  Boolean @default(true)
+  formConsent    Boolean @default(true)
+  privacyAccept  Boolean @default(true)
+  marketingConsent Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== EMAIL SETTINGS ==========
+model EmailSetting {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id])
+  smtpHost  String?
+  smtpPort  Int?
+  smtpUser  String?
+  smtpPass  String?
+  formEmail String?
+  autoReplyTemplate String?
+  adminAlerts Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== REDIRECTS ==========
+model Redirect {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  fromPath  String
+  toPath    String
+  type      String   @default("301") // 301, 302
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== API KEYS ==========
+model ApiKey {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id])
+  name      String
+  key       String   @unique
+  permissions String? // JSON array
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========== CTA MANAGEMENT ==========
+model CTA {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  title       String
+  buttonText  String
+  link        String?
+  type        String   @default("button") // button, floating, banner
+  placement   String   @default("global") // global, homepage, all, specific
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  bgColor     String?
+  textColor   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+// ========== POPUP MANAGEMENT ==========
+model Popup {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  title       String
+  content     String?
+  type        String   @default("info") // info, newsletter, lead-magnet
+  trigger     String   @default("exit") // exit, time, scroll, click
+  delay       Int      @default(5)
+  isActive    Boolean  @default(true)
+  buttonText  String?
+  buttonLink  String?
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+// ========== VISITOR SESSIONS ==========
+model VisitorSession {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  sessionId   String   @unique
+  page        String
+  userAgent   String?  @db.Text
+  ip          String?
+  country     String?
+  device      String?  // desktop, mobile, tablet
+  browser     String?
+  source      String?  // direct, google, social, etc.
+  duration    Int      @default(0)
+  isActive    Boolean  @default(true)
+  lastSeen    DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([projectId, isActive])
+  @@index([lastSeen])
+}
+
+// ========== ERROR LOGS ==========
+model ErrorLog {
+  id        String   @id @default(cuid())
+  projectId String?
+  level     String   @default("error") // error, warn, info
+  message   String   @db.Text
+  stack     String?  @db.Text
+  url       String?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([level, createdAt])
 }
