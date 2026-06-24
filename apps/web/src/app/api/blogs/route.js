@@ -1,48 +1,36 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { blogService } from '@/lib/services/blogService.js';
+import { blogSchema } from '@/lib/validators/index.js';
+import { ValidationError } from '@/lib/errorLogger.js';
+import { z } from 'zod';
 
-export async function GET(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const blogCreateSchema = blogSchema.extend({
+  projectId: z.string().min(1, 'Project ID is required'),
+});
 
-  const { searchParams } = new URL(request.url);
-  const projectId = searchParams.get('projectId');
-
-  if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-  const blogs = await prisma.blog.findMany({
-    where: { projectId },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  return NextResponse.json({ blogs });
-}
-
-export async function POST(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const { projectId, title, content, excerpt, slug, category, featuredImage, author, status, publishedAt, scheduledAt, seoTitle, seoDescription } = body;
-
-  const blog = await prisma.blog.create({
-    data: {
-      projectId,
-      title,
-      content,
-      excerpt,
-      slug,
-      category,
-      featuredImage,
-      author,
-      status: status || 'draft',
-      publishedAt,
-      scheduledAt,
-      seoTitle,
-      seoDescription,
-    },
-  });
-
-  return NextResponse.json({ blog });
-}
+export const { GET, POST } = createApiHandler({
+  GET: {
+    auth: 'jwt',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const result = await blogService.getAll(projectId, query);
+      const blogs = Array.isArray(result) ? result : result.items;
+      const pagination = Array.isArray(result) ? null : result.pagination;
+      return { 
+        blogs,
+        ...(pagination && { pagination })
+      };
+    }
+  },
+  POST: {
+    auth: 'jwt',
+    schema: blogCreateSchema,
+    handler: async ({ body }) => {
+      const blog = await blogService.create(body);
+      return { blog };
+    }
+  }
+});

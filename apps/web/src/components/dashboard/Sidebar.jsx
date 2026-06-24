@@ -12,6 +12,11 @@ const allMenuGroups = [
     icon: '📊',
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: '📊', permission: null },
+      { label: 'Websites', href: '/dashboard/websites', icon: '🔌', permission: null },
+      { label: 'Routes', href: '/dashboard/routes', icon: '🛣️', permission: null },
+      { label: 'Content Blocks', href: '/dashboard/content-manager', icon: '📝', permission: null },
+      { label: 'Features Toggle', href: '/dashboard/features', icon: '🧩', permission: null },
+      { label: 'Components', href: '/dashboard/components', icon: '🧩', permission: null },
     ],
   },
   {

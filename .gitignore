@@ -40,6 +40,14 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
+# OneDrive sync issues
+*.tmp
+*.temp
+~$*
+.~lock.*
+# OneDrive file lock files
+.~lock.*#
+
 # Prisma (SQLite database files only, NOT migrations)
 apps/web/prisma/*.db
 apps/web/prisma/*.db-journal
@@ -72,3 +80,6 @@ public/uploads/
 
 # SDK Build
 packages/sdk/dist
+
+# Generated Prisma Client
+apps/web/src/generated/

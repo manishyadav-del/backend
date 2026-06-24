@@ -44,7 +44,7 @@ export async function POST(request) {
       permissions: userPermissions,
     });
 
-    const redirectUrl = primaryRole === 'Client User' ? '/user-dashboard' : '/dashboard';
+    const redirectUrl = '/home';
 
     const response = NextResponse.json({ 
       success: true, 

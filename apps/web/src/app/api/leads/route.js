@@ -1,65 +1,36 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
-import { createNotification } from '@/lib/notify.js';
-import { validateBody, leadSchema } from '@/lib/validate.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { leadService } from '@/lib/services/leadService.js';
+import { leadSchema } from '@/lib/validators/index.js';
+import { z } from 'zod';
+import { ValidationError } from '@/lib/errorLogger.js';
 
-export async function GET(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const leadCreateSchema = leadSchema.extend({
+  projectId: z.string().min(1, 'Project ID is required'),
+});
 
-  const { searchParams } = new URL(request.url);
-  const projectId = searchParams.get('projectId');
-
-  if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-  const leads = await prisma.lead.findMany({
-    where: { projectId },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  return NextResponse.json({ leads });
-}
-
-export async function POST(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  try {
-    const body = await request.json();
-    const { data, error } = validateBody(leadSchema, body);
-    if (error) {
-      return NextResponse.json({ error }, { status: 400 });
+export const { GET, POST } = createApiHandler({
+  GET: {
+    auth: 'jwt',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const result = await leadService.getAll(projectId, query);
+      const leads = Array.isArray(result) ? result : result.items;
+      const pagination = Array.isArray(result) ? null : result.pagination;
+      return { 
+        leads,
+        ...(pagination && { pagination })
+      };
     }
-
-    const { projectId, name, email, phone, serviceInterest, sourcePage, source, status, notes } = body;
-
-    const lead = await prisma.lead.create({
-      data: {
-        projectId,
-        name,
-        email,
-        phone,
-        serviceInterest,
-        sourcePage,
-        source,
-        status: status || 'new',
-        notes,
-      },
-    });
-
-    // Generate an auto-notification
-    await createNotification(
-      projectId,
-      'lead',
-      'New Lead Registered',
-      `Lead ${name || email || 'Anonymous'} has registered interest in ${serviceInterest || 'general'}.`,
-      '/dashboard/leads'
-    );
-
-    return NextResponse.json({ lead });
-  } catch (err) {
-    console.error('Lead create error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  },
+  POST: {
+    auth: 'jwt',
+    schema: leadCreateSchema,
+    handler: async ({ body }) => {
+      const lead = await leadService.create(body);
+      return { lead };
+    }
   }
-}
+});

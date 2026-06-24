@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -13,7 +14,8 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  role      String   @default("admin") // admin, editor, manager, viewer
+  role      String   @default("user") // user, client, content_creator, author, contributor, admin
+  status    String   @default("active") // active, inactive, suspended, pending
   avatar    String?
   twoFactorSecret String?
   twoFactorEnabled Boolean @default(false)
@@ -358,7 +360,7 @@ model TeamMember {
   role      String?
   photo     String?
   bio       String?
-  socialLinks String? // JSON
+  socialLinks String? @db.Text // JSON
   sortOrder Int      @default(0)
   isVisible Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -384,7 +386,7 @@ model Navigation {
   projectId String
   project   Project  @relation(fields: [projectId], references: [id])
   location  String   // main, footer, mobile
-  items     String   // JSON array of menu items
+  items     String   @db.Text // JSON array of menu items
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -441,11 +443,11 @@ model GlobalSetting {
   logo      String?
   favicon   String?
   brandColor String  @default("#3b82f6")
-  headerSettings String? // JSON
-  footerSettings String? // JSON
+  headerSettings String? @db.Text // JSON
+  footerSettings String? @db.Text // JSON
   maintenanceMode Boolean @default(false)
-  defaultContact  String? // JSON
-  analytics  String? // JSON - GA, Clarity, etc IDs
+  defaultContact  String? @db.Text // JSON
+  analytics  String? @db.Text // JSON - GA, Clarity, etc IDs
   cookieConsent  Boolean @default(true)
   formConsent    Boolean @default(true)
   privacyAccept  Boolean @default(true)
@@ -665,3 +667,250 @@ model UserMedia {
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   media   Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 }
+
+// ========== WEBSITE CONNECTOR SYSTEM ==========
+
+model ConnectedWebsite {
+  id              String   @id @default(cuid()) @db.VarChar(50)
+  name            String
+  domain          String   @unique @db.VarChar(191)
+  ipAddress       String   @db.VarChar(50)
+  apiUrl          String?  @db.VarChar(191)
+  dbHost          String?  @db.VarChar(100)
+  dbPort          Int?
+  dbUser          String?  @db.VarChar(100)
+  dbPassword      String?  @db.Text
+  dbName          String?  @db.VarChar(100)
+  authToken       String   @db.Text
+  framework       String   @db.VarChar(50) // "nextjs", "react", "wordpress", "laravel", etc.
+  frameworkVersion String?  @db.VarChar(50)
+  sdkVersion      String?  @db.VarChar(50)
+  status          String   @default("connected") @db.VarChar(20) // connected, disconnected, error
+  syncStatus      String   @default("synced") @db.VarChar(20) // synced, syncing, error
+  environment     String   @default("production") @db.VarChar(50)
+  ownerInfo       String?  @db.VarChar(191)
+  modules         String?  @db.Text // JSON configuration of active modules
+  lastSyncedAt    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  routes          ConnectedRoute[]
+  activityLogs    ConnectedWebsiteLog[]
+  discoveredApis  DiscoveredApi[]
+  moduleAssignments ModuleAssignment[]
+  syncLogs          WebsiteSyncLog[]
+}
+
+model DiscoveredApi {
+  id          String           @id @default(cuid()) @db.VarChar(50)
+  websiteId   String           @db.VarChar(50)
+  website     ConnectedWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  method      String           @db.VarChar(10) // GET, POST, PUT, PATCH, DELETE
+  path        String           @db.VarChar(120)
+  description String?          @db.VarChar(191)
+  createdAt   DateTime         @default(now())
+
+  @@unique([websiteId, method, path])
+}
+
+model ConnectedRoute {
+  id                 String           @id @default(cuid()) @db.VarChar(50)
+  websiteId          String           @db.VarChar(50)
+  website            ConnectedWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  path               String           @db.VarChar(191) // e.g. "/about"
+  title              String
+  content            String?          @db.LongText // JSON content: text, images, banners, forms, menus, page sections
+  metaTitle          String?
+  metaDescription    String?
+  status             String           @default("active") @db.VarChar(20) // active, draft, inactive
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([websiteId, path])
+}
+
+model ConnectedWebsiteLog {
+  id           String           @id @default(cuid()) @db.VarChar(50)
+  websiteId    String           @db.VarChar(50)
+  website      ConnectedWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  action       String           @db.VarChar(50) // e.g. "CONNECT", "SYNC", "UPDATE_ROUTE", "DELETE_ROUTE"
+  status       String           @db.VarChar(20) // "success", "failure"
+  details      String?          @db.Text
+  createdAt    DateTime         @default(now())
+}
+
+model ConnectedWebsiteModule {
+  id          String   @id @default(cuid()) @db.VarChar(50)
+  key         String   @unique @db.VarChar(50) // e.g. "dashboard", "content", "crm", "analytics", "builder", "reputation", "seo", "security", "users", "system", "legal"
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  status      String   @default("active") @db.VarChar(20) // active, inactive
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments ModuleAssignment[]
+}
+
+model ModuleAssignment {
+  id           String                 @id @default(cuid()) @db.VarChar(50)
+  websiteId    String                 @db.VarChar(50)
+  website      ConnectedWebsite       @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  moduleId     String                 @db.VarChar(50)
+  module       ConnectedWebsiteModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  status       String                 @default("enabled") @db.VarChar(20) // enabled, disabled
+  lastSyncedAt DateTime?
+  syncStatus   String                 @default("synced") @db.VarChar(20) // synced, error, pending
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  @@unique([websiteId, moduleId])
+}
+
+model WebsiteSyncLog {
+  id         String           @id @default(cuid()) @db.VarChar(50)
+  websiteId  String           @db.VarChar(50)
+  website    ConnectedWebsite @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  moduleKey  String           @db.VarChar(50) // e.g., "seo", "content"
+  action     String           @db.VarChar(50) // e.g., "SYNC_SEO", "SYNC_TEMPLATES"
+  status     String           @db.VarChar(20) // success, failure
+  errorMsg   String?          @db.Text
+  createdAt  DateTime         @default(now())
+}
+
+// ========== NEW WEBSITES CONNECTOR SDK MODELS ==========
+
+model Website {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  name            String
+  domain          String         @unique @db.VarChar(191)
+  framework       String         @db.VarChar(50)
+  frameworkVersion String?        @db.VarChar(50)
+  sdkVersion       String?        @db.VarChar(50)
+  environment      String?        @db.VarChar(50)
+  apiKey          String?        @unique @db.VarChar(191)
+  syncToken       String?        @db.Text
+  status          String         @default("connected") @db.VarChar(20)
+  lastSyncedAt    DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  tokens          WebsiteToken[]
+  routes          WebsiteRoute[]
+  pages           WebsitePage[]
+  modules         WebsiteModule[]
+  components      WebsiteComponent[]
+  media           WebsiteMedia[]
+  syncJobs        SyncJob[]
+  syncLogs        SyncLog[]
+}
+
+model WebsiteToken {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  websiteId       String         @db.VarChar(50)
+  website         Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  token           String         @unique @db.VarChar(191)
+  expiresAt       DateTime?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+}
+
+model WebsiteRoute {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  websiteId       String         @db.VarChar(50)
+  website         Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  path            String         @db.VarChar(150)
+  title           String?        @db.VarChar(191)
+  routeType       String         @default("page") @db.VarChar(20) // page, api, dynamic
+  isDynamic       Boolean        @default(false)
+  status          String         @default("active") @db.VarChar(20)
+  assignedModule  String?        @db.VarChar(50)  // cms, blog, seo, forms, legal, analytics, media, settings
+  moduleConfig    String?        @db.Text          // JSON: custom config per module assignment
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([websiteId, path])
+}
+
+model WebsitePage {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  websiteId       String         @db.VarChar(50)
+  website         Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  slug            String         @db.VarChar(150)
+  title           String         @db.VarChar(191)
+  content         String?        @db.LongText
+  seoTitle        String?        @db.VarChar(191)
+  seoDesc         String?        @db.Text
+  ogImage         String?        @db.VarChar(191)
+  status          String         @default("published") @db.VarChar(20)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([websiteId, slug])
+}
+
+model WebsiteModule {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  websiteId       String         @db.VarChar(50)
+  website         Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  key             String         @db.VarChar(50)
+  status          String         @default("enabled") @db.VarChar(20)
+  config          String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([websiteId, key])
+}
+
+model WebsiteMedia {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  websiteId       String         @db.VarChar(50)
+  website         Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  filename        String         @db.VarChar(191)
+  url             String         @db.VarChar(191)
+  mimeType        String         @db.VarChar(100)
+  size            Int
+  altText         String?        @db.VarChar(191)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model SyncJob {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  websiteId       String         @db.VarChar(50)
+  website         Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  type            String         @db.VarChar(50)
+  status          String         @default("pending") @db.VarChar(20)
+  payload         String?        @db.LongText
+  error           String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model SyncLog {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  websiteId       String         @db.VarChar(50)
+  website         Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  action          String         @db.VarChar(50)
+  status          String         @db.VarChar(20)
+  details         String?        @db.LongText
+  createdAt       DateTime       @default(now())
+}
+
+model WebsiteComponent {
+  id              String         @id @default(cuid()) @db.VarChar(50)
+  websiteId       String         @db.VarChar(50)
+  website         Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  name            String         @db.VarChar(50)
+  filePath        String         @db.VarChar(191)
+  route           String         @db.VarChar(100)
+  componentType   String         @default("Section") @db.VarChar(50) // Section, Widget, Module, Component
+  props           String?        @db.Text          // JSON string array of discovered props
+  data            String?        @db.Text          // JSON object values
+  previewImage    String?        @db.VarChar(255)
+  status          String         @default("active") @db.VarChar(20)
+  sortOrder       Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([websiteId, name, route])
+}

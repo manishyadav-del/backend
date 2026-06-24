@@ -1,9 +1,11 @@
 'use client';
-
+ 
 import { useEffect, useState } from 'react';
 import { seoApi } from '@/lib/api.js';
-
+import WebsiteAssignmentTab from '@/components/WebsiteAssignmentTab.jsx';
+ 
 export default function SEOPage() {
+  const [activeTab, setActiveTab] = useState('profiles'); // profiles, assignments
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,45 +81,94 @@ export default function SEOPage() {
 
   return (
     <div className="seo-page">
-      <div className="page-header">
-        <h1>SEO Management</h1>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-h1)', margin: 0 }}>SEO Management</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            Configure meta titles, tags, robots.txt, and map SEO capabilities to connected sites.
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', marginBottom: '1.5rem', gap: '1.5rem' }}>
+        <button
+          onClick={() => setActiveTab('profiles')}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '0.75rem 0.25rem',
+            color: activeTab === 'profiles' ? 'var(--primary)' : 'var(--text-secondary)',
+            fontWeight: activeTab === 'profiles' ? 700 : 500,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'profiles' ? '2px solid var(--primary)' : '2px solid transparent',
+            transition: 'var(--transition)'
+          }}
+        >
+          SEO Profiles
+        </button>
+        <button
+          onClick={() => setActiveTab('assignments')}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '0.75rem 0.25rem',
+            color: activeTab === 'assignments' ? 'var(--primary)' : 'var(--text-secondary)',
+            fontWeight: activeTab === 'assignments' ? 700 : 500,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'assignments' ? '2px solid var(--primary)' : '2px solid transparent',
+            transition: 'var(--transition)'
+          }}
+        >
+          Website Assignment
+        </button>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      {loading ? (
-        <div className="loading">Loading SEO data...</div>
-      ) : pages.length === 0 ? (
-        <div className="empty-state">
-          <p>No SEO data found. Pages must be created first.</p>
-        </div>
-      ) : (
-        <div className="data-table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Page Slug</th>
-                <th>Meta Title</th>
-                <th>Meta Description</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pages.map(seo => (
-                <tr key={seo.id}>
-                  <td><code>{seo.urlSlug || '-'}</code></td>
-                  <td>{seo.metaTitle || '-'}</td>
-                  <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {seo.metaDescription || '-'}
-                  </td>
-                  <td>
-                    <button onClick={() => handleEdit(seo)} className="btn-sm">Edit SEO</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {activeTab === 'profiles' && (
+        <>
+          {loading ? (
+            <div className="loading">Loading SEO data...</div>
+          ) : pages.length === 0 ? (
+            <div className="empty-state">
+              <p>No SEO data found. Pages must be created first.</p>
+            </div>
+          ) : (
+            <div className="data-table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Page Slug</th>
+                    <th>Meta Title</th>
+                    <th>Meta Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pages.map(seo => (
+                    <tr key={seo.id}>
+                      <td><code>{seo.urlSlug || '-'}</code></td>
+                      <td>{seo.metaTitle || '-'}</td>
+                      <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {seo.metaDescription || '-'}
+                      </td>
+                      <td>
+                        <button onClick={() => handleEdit(seo)} className="btn-sm">Edit SEO</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'assignments' && (
+        <WebsiteAssignmentTab moduleKey="seo" />
       )}
 
       {showModal && (

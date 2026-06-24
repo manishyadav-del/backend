@@ -1,38 +1,32 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { navigationService } from '@/lib/services/navigationService.js';
+import { ValidationError } from '@/lib/errorLogger.js';
+import { z } from 'zod';
 
-export async function GET(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const navigationCreateSchema = z.object({
+  projectId: z.string().min(1, 'Project ID is required'),
+  location: z.string().min(1, 'Location is required'),
+  items: z.any()
+});
 
-  const { searchParams } = new URL(request.url);
-  const projectId = searchParams.get('projectId');
-
-  if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-  const menus = await prisma.navigation.findMany({
-    where: { projectId },
-    orderBy: { location: 'asc' },
-  });
-
-  return NextResponse.json({ menus });
-}
-
-export async function POST(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const { projectId, location, items } = body;
-
-  const menu = await prisma.navigation.create({
-    data: {
-      projectId,
-      location,
-      items: JSON.stringify(items),
-    },
-  });
-
-  return NextResponse.json({ menu });
-}
+export const { GET, POST } = createApiHandler({
+  GET: {
+    auth: 'public',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const menus = await navigationService.getAll(projectId, query);
+      return { menus };
+    }
+  },
+  POST: {
+    auth: 'jwt',
+    schema: navigationCreateSchema,
+    handler: async ({ body }) => {
+      const menu = await navigationService.create(body);
+      return { menu };
+    }
+  }
+});

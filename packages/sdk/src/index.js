@@ -12,3 +12,4 @@
 export { GlobalBackendClient } from './client.js';
 export { scanRoutes, syncPages } from './sync.js';
 export { registerProject } from './register.js';
+export { createAgentHandler } from './agent.js';

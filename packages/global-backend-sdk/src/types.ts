@@ -5,8 +5,32 @@ export interface GlobalBackendClientConfig {
 
 export interface ProjectRoute {
   slug: string;
+  path: string;
   isDynamic: boolean;
+  isCatchAll?: boolean;
+  type?: 'page' | 'api' | 'dynamic';
+  title?: string;
+  assignedModule?: RouteFeatureModule | null;
+  moduleConfig?: Record<string, any> | null;
 }
+
+export type RouteFeatureModule =
+  | 'cms'
+  | 'blog'
+  | 'seo'
+  | 'forms'
+  | 'legal'
+  | 'analytics'
+  | 'media'
+  | 'settings';
+
+export interface RouteFeatureData<T = any> {
+  route: { id: string; path: string; title?: string | null; routeType?: string };
+  module: RouteFeatureModule | null;
+  config: Record<string, any> | null;
+  data: T | null;
+}
+
 
 export interface SEO {
   id?: string;

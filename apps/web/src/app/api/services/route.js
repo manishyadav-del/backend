@@ -1,64 +1,37 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { serviceService } from '@/lib/services/serviceService.js';
+import { serviceSchema } from '@/lib/validators/index.js';
+import { z } from 'zod';
+import { ValidationError } from '@/lib/errorLogger.js';
 
-export async function GET(request) {
-  try {
-    const user = getAuthUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const serviceCreateSchema = serviceSchema.extend({
+  projectId: z.string().min(1, 'Project ID is required'),
+  faqIds: z.array(z.string()).optional(),
+});
 
-    const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('projectId');
-
-    if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-    const services = await prisma.service.findMany({
-      where: { projectId },
-      orderBy: { sortOrder: 'asc' },
-    });
-
-    return NextResponse.json({ services });
-  } catch (error) {
-    console.error('Get services error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-export async function POST(request) {
-  try {
-    const user = getAuthUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const body = await request.json();
-    const { projectId, title, description, image, ctaText, ctaLink, sortOrder, isVisible, faqIds } = body;
-
-    if (!projectId || !title) {
-      return NextResponse.json({ error: 'Project ID and title are required' }, { status: 400 });
+export const { GET, POST } = createApiHandler({
+  GET: {
+    auth: 'jwt',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const result = await serviceService.getAll(projectId, query);
+      const services = Array.isArray(result) ? result : result.items;
+      const pagination = Array.isArray(result) ? null : result.pagination;
+      return { 
+        services,
+        ...(pagination && { pagination })
+      };
     }
-
-    const service = await prisma.service.create({
-      data: {
-        projectId,
-        title,
-        description,
-        image,
-        ctaText,
-        ctaLink,
-        sortOrder: sortOrder || 0,
-        isVisible: isVisible ?? true,
-      },
-    });
-
-    if (faqIds && faqIds.length > 0) {
-      await prisma.fAQ.updateMany({
-        where: { id: { in: faqIds } },
-        data: { serviceId: service.id },
-      });
+  },
+  POST: {
+    auth: 'jwt',
+    schema: serviceCreateSchema,
+    handler: async ({ body }) => {
+      const service = await serviceService.create(body);
+      return { service };
     }
-
-    return NextResponse.json({ service }, { status: 201 });
-  } catch (error) {
-    console.error('Create service error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
+});

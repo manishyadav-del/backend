@@ -13,8 +13,26 @@ export default function DashboardLayout({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  const handleApplyChanges = async () => {
+    try {
+      setSyncing(true);
+      const res = await fetch('/api/sync/apply-changes', { method: 'POST' });
+      const json = await res.json();
+      if (json.success) {
+        alert(json.message || 'Successfully applied changes across all connected websites.');
+      } else {
+        alert(json.error || 'Failed to apply changes.');
+      }
+    } catch (err) {
+      alert('Sync failed: ' + err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -41,11 +59,13 @@ export default function DashboardLayout({ children }) {
           if (data.user.role === 'admin' && pathname.startsWith('/user-dashboard')) {
             router.replace('/dashboard');
           }
+          setLoading(false);
+        } else {
+          router.replace('/login');
         }
-        setLoading(false);
       })
       .catch(() => {
-        setLoading(false);
+        router.replace('/login');
       });
 
     // Fetch unread notification count
@@ -132,7 +152,33 @@ export default function DashboardLayout({ children }) {
               </div>
             </div>
 
-            <div className="topbar-center" />
+             <div className="topbar-center" style={{ display: 'flex', justifyContent: 'center', flex: 1 }}>
+               <button 
+                 onClick={handleApplyChanges}
+                 disabled={syncing}
+                 style={{
+                   display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                   padding: '0.5rem 1.1rem', borderRadius: 'var(--radius-md)',
+                   background: syncing ? 'rgba(16, 185, 129, 0.12)' : 'linear-gradient(135deg, #10b981, #059669)',
+                   color: syncing ? '#10b981' : '#fff',
+                   border: syncing ? '1px solid #10b981' : 'none',
+                   fontSize: '0.8rem', fontWeight: 700, cursor: syncing ? 'not-allowed' : 'pointer',
+                   transition: 'all 0.15s ease-in-out',
+                   boxShadow: syncing ? 'none' : '0 2px 5px rgba(16, 185, 129, 0.25)'
+                 }}
+               >
+                 {syncing ? (
+                   <>
+                     <span className="animate-spin" style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #10b981', borderTopColor: 'transparent', borderRadius: '50%', marginRight: '2px' }} />
+                     Propagating Changes...
+                   </>
+                 ) : (
+                   <>
+                     ⚡ Apply Changes
+                   </>
+                 )}
+               </button>
+             </div>
 
             <div className="topbar-right">
               <Link href="/dashboard/notifications" className="topbar-btn" title="Notifications" aria-label="Notifications">

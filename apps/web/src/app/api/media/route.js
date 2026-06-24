@@ -1,46 +1,36 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { mediaService } from '@/lib/services/mediaService.js';
+import { mediaSchema } from '@/lib/validators/index.js';
+import { z } from 'zod';
+import { ValidationError } from '@/lib/errorLogger.js';
 
-export async function GET(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const mediaCreateSchema = mediaSchema.extend({
+  projectId: z.string().min(1, 'Project ID is required'),
+});
 
-  const { searchParams } = new URL(request.url);
-  const projectId = searchParams.get('projectId');
-
-  if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-  const media = await prisma.media.findMany({
-    where: { projectId },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  return NextResponse.json({ media });
-}
-
-export async function POST(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const { projectId, filename, originalName, url, thumbnail, mimeType, size, altText, folder, width, height } = body;
-
-  const media = await prisma.media.create({
-    data: {
-      projectId,
-      filename,
-      originalName,
-      url,
-      thumbnail,
-      mimeType,
-      size,
-      altText,
-      folder: folder || 'root',
-      width,
-      height,
-    },
-  });
-
-  return NextResponse.json({ media });
-}
+export const { GET, POST } = createApiHandler({
+  GET: {
+    auth: 'jwt',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const result = await mediaService.getAll(projectId, query);
+      const media = Array.isArray(result) ? result : result.items;
+      const pagination = Array.isArray(result) ? null : result.pagination;
+      return { 
+        media,
+        ...(pagination && { pagination })
+      };
+    }
+  },
+  POST: {
+    auth: 'jwt',
+    schema: mediaCreateSchema,
+    handler: async ({ body }) => {
+      const media = await mediaService.create(body);
+      return { media };
+    }
+  }
+});

@@ -1,82 +1,28 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { testimonialService } from '@/lib/services/testimonialService.js';
+import { testimonialSchema } from '@/lib/validators/index.js';
 
-// GET /api/testimonials/[id] - Get single testimonial
-export async function GET(request, { params }) {
-  try {
-    const user = getAuthUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const { id } = params;
-
-    const testimonial = await prisma.testimonial.findUnique({
-      where: { id },
-    });
-
-    if (!testimonial) {
-      return NextResponse.json({ error: 'Testimonial not found' }, { status: 404 });
+export const { GET, PUT, DELETE } = createApiHandler({
+  GET: {
+    auth: 'jwt',
+    handler: async ({ params }) => {
+      const testimonial = await testimonialService.findById(params.id);
+      return { testimonial };
     }
-
-    return NextResponse.json({ testimonial });
-  } catch (error) {
-    console.error('Get testimonial error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-// PUT /api/testimonials/[id] - Update testimonial
-export async function PUT(request, { params }) {
-  try {
-    const user = getAuthUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const { id } = params;
-    const body = await request.json();
-    const { clientName, clientImage, rating, content, isVisible, sortOrder } = body;
-
-    const testimonial = await prisma.testimonial.findUnique({
-      where: { id },
-    });
-
-    if (!testimonial) {
-      return NextResponse.json({ error: 'Testimonial not found' }, { status: 404 });
+  },
+  PUT: {
+    auth: 'jwt',
+    schema: testimonialSchema.partial(),
+    handler: async ({ params, body }) => {
+      const testimonial = await testimonialService.update(params.id, body);
+      return { testimonial };
     }
-
-    const updatedTestimonial = await prisma.testimonial.update({
-      where: { id },
-      data: {
-        ...(clientName && { clientName }),
-        ...(clientImage !== undefined && { clientImage }),
-        ...(rating !== undefined && { rating }),
-        ...(content && { content }),
-        ...(isVisible !== undefined && { isVisible }),
-        ...(sortOrder !== undefined && { sortOrder }),
-      },
-    });
-
-    return NextResponse.json({ testimonial: updatedTestimonial });
-  } catch (error) {
-    console.error('Update testimonial error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  },
+  DELETE: {
+    auth: 'jwt',
+    handler: async ({ params }) => {
+      await testimonialService.delete(params.id);
+      return { success: true };
+    }
   }
-}
-
-// DELETE /api/testimonials/[id] - Delete testimonial
-export async function DELETE(request, { params }) {
-  try {
-    const user = getAuthUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const { id } = params;
-
-    await prisma.testimonial.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Delete testimonial error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+});

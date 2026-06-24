@@ -1,52 +1,41 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import prisma from '@/lib/prisma.js';
-import { revalidateTag } from 'next/cache';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { settingsService } from '@/lib/services/settingsService.js';
+import { ValidationError } from '@/lib/errorLogger.js';
+import { prisma } from '@/lib/prisma.js';
+import { broadcastToWebsite } from '@/lib/socket.js';
 
-export async function GET(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export const { GET, PUT } = createApiHandler({
+  GET: {
+    auth: 'public',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const data = await settingsService.getFooterSettings(projectId);
+      return { success: true, data };
+    }
+  },
+  PUT: {
+    auth: 'jwt',
+    handler: async ({ body, user }) => {
+      const { projectId, ...footerConfig } = body;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const data = await settingsService.updateFooterSettings(projectId, footerConfig, user.id);
 
-  const { searchParams } = new URL(request.url);
-  const projectId = searchParams.get('projectId');
-  if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
+      try {
+        const websites = await prisma.website.findMany();
+        for (const site of websites) {
+          broadcastToWebsite(site.id, 'footer:update', footerConfig);
+          broadcastToWebsite(site.id, 'website:sync', { action: 'REFRESH' });
+        }
+      } catch (err) {
+        console.error('Failed to broadcast footer updates:', err);
+      }
 
-  const settings = await prisma.globalSetting.findUnique({ where: { projectId } });
-
-  let footerSettings = {};
-  try {
-    footerSettings = settings?.footerSettings ? JSON.parse(settings.footerSettings) : {};
-  } catch { /* ignore */ }
-
-  return NextResponse.json({ success: true, data: footerSettings });
-}
-
-export async function PUT(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  try {
-    const body = await request.json();
-    const { projectId, ...footerConfig } = body;
-
-    if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-    const settings = await prisma.globalSetting.upsert({
-      where: { projectId },
-      update: { footerSettings: JSON.stringify(footerConfig) },
-      create: { projectId, footerSettings: JSON.stringify(footerConfig) },
-    });
-
-    // Invalidate cached global settings on frontend
-    revalidateTag('global-settings');
-
-    await prisma.activityLog.create({
-      data: { userId: user.id, action: 'settings.footer_updated', entity: 'GlobalSetting', entityId: settings.id, details: 'Footer builder settings saved' },
-    });
-
-    return NextResponse.json({ success: true, data: footerConfig });
-  } catch (error) {
-    console.error('Footer settings error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      return { success: true, data };
+    }
   }
-}
+});

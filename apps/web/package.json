@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node -e \"try { require('fs').rmSync('.next', { recursive: true, force: true }); } catch (e) {}\" && next dev",
     "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "db:generate": "npx prisma generate",
     "db:migrate": "npx prisma migrate dev",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
@@ -20,6 +21,8 @@
     "nodemailer": "^9.0.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "zod": "^4.4.3"
   },
   "prisma": {

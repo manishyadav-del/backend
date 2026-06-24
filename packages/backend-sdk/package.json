@@ -1,0 +1,25 @@
+{
+  "name": "@global/backend-sdk",
+  "version": "1.0.0",
+  "description": "Global Backend CMS and Connector SDK for JavaScript/Node.js web applications",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "type": "module",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "socket.io-client": "^4.8.1"
+  },
+  "peerDependencies": {
+    "next": ">=15.0.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "keywords": [
+    "cms",
+    "sdk",
+    "global-backend",
+    "sync",
+    "connector"
+  ],
+  "license": "MIT"
+}

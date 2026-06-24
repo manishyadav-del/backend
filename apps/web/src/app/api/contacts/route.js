@@ -1,41 +1,36 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { contactService } from '@/lib/services/contactService.js';
+import { contactSchema } from '@/lib/validators/index.js';
+import { z } from 'zod';
+import { ValidationError } from '@/lib/errorLogger.js';
 
-export async function GET(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const contactCreateSchema = contactSchema.extend({
+  projectId: z.string().min(1, 'Project ID is required'),
+});
 
-  const { searchParams } = new URL(request.url);
-  const projectId = searchParams.get('projectId');
-
-  if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-  const contacts = await prisma.contact.findMany({
-    where: { projectId },
-    orderBy: { sortOrder: 'asc' },
-  });
-
-  return NextResponse.json({ contacts });
-}
-
-export async function POST(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const { projectId, type, label, value, icon, sortOrder } = body;
-
-  const contact = await prisma.contact.create({
-    data: {
-      projectId,
-      type,
-      label,
-      value,
-      icon,
-      sortOrder: sortOrder || 0,
-    },
-  });
-
-  return NextResponse.json({ contact });
-}
+export const { GET, POST } = createApiHandler({
+  GET: {
+    auth: 'jwt',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const result = await contactService.getAll(projectId, query);
+      const contacts = Array.isArray(result) ? result : result.items;
+      const pagination = Array.isArray(result) ? null : result.pagination;
+      return { 
+        contacts,
+        ...(pagination && { pagination })
+      };
+    }
+  },
+  POST: {
+    auth: 'jwt',
+    schema: contactCreateSchema,
+    handler: async ({ body }) => {
+      const contact = await contactService.create(body);
+      return { contact };
+    }
+  }
+});

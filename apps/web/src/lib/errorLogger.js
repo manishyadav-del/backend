@@ -5,6 +5,44 @@
 import prisma from '@/lib/prisma.js';
 
 /**
+ * Custom Service Error classes
+ */
+export class ServiceError extends Error {
+  constructor(message, statusCode = 500, code = 'INTERNAL_ERROR', details = null) {
+    super(message);
+    this.name = this.constructor.name;
+    this.statusCode = statusCode;
+    this.code = code;
+    this.details = details;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class ValidationError extends ServiceError {
+  constructor(message, details = null) {
+    super(message, 400, 'VALIDATION_ERROR', details);
+  }
+}
+
+export class NotFoundError extends ServiceError {
+  constructor(message) {
+    super(message, 404, 'NOT_FOUND');
+  }
+}
+
+export class ConflictError extends ServiceError {
+  constructor(message) {
+    super(message, 409, 'CONFLICT');
+  }
+}
+
+export class AuthError extends ServiceError {
+  constructor(message) {
+    super(message, 401, 'UNAUTHORIZED');
+  }
+}
+
+/**
  * @param {string} message
  * @param {string|null} stack
  * @param {string|null} url

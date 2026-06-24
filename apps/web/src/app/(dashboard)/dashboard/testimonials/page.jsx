@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { testimonialsApi } from '@/lib/api.js';
+import WebsiteAssignmentTab from '@/components/WebsiteAssignmentTab.jsx';
 
 export default function TestimonialsPage() {
+  const [activeTab, setActiveTab] = useState('list'); // list, assignments
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -94,14 +96,59 @@ export default function TestimonialsPage() {
 
   return (
     <div className="testimonials-page">
-      <div className="page-header">
-        <h1>Testimonials</h1>
-        <button onClick={() => setShowModal(true)} className="btn-primary">+ New Testimonial</button>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-h1)', margin: 0 }}>Testimonials</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            Manage client reviews, testimonial details, and reputation module mappings.
+          </p>
+        </div>
+        {activeTab === 'list' && (
+          <button onClick={() => setShowModal(true)} className="btn-primary">+ New Testimonial</button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light)', marginBottom: '1.5rem', gap: '1.5rem' }}>
+        <button
+          onClick={() => setActiveTab('list')}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '0.75rem 0.25rem',
+            color: activeTab === 'list' ? 'var(--primary)' : 'var(--text-secondary)',
+            fontWeight: activeTab === 'list' ? 700 : 500,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'list' ? '2px solid var(--primary)' : '2px solid transparent',
+            transition: 'var(--transition)'
+          }}
+        >
+          Testimonials List
+        </button>
+        <button
+          onClick={() => setActiveTab('assignments')}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: '0.75rem 0.25rem',
+            color: activeTab === 'assignments' ? 'var(--primary)' : 'var(--text-secondary)',
+            fontWeight: activeTab === 'assignments' ? 700 : 500,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'assignments' ? '2px solid var(--primary)' : '2px solid transparent',
+            transition: 'var(--transition)'
+          }}
+        >
+          Website Assignment
+        </button>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      {loading ? (
+      {activeTab === 'list' && (
+        <>
+          {loading ? (
         <div className="loading">Loading testimonials...</div>
       ) : testimonials.length === 0 ? (
         <div className="empty-state">
@@ -128,6 +175,12 @@ export default function TestimonialsPage() {
             </div>
           ))}
         </div>
+      )}
+        </>
+      )}
+
+      {activeTab === 'assignments' && (
+        <WebsiteAssignmentTab moduleKey="reputation" />
       )}
 
       {showModal && (

@@ -202,7 +202,21 @@ export async function middleware(request) {
       '/api/pages/by-slug/',
     ];
 
+    const publicReadPaths = [
+      '/api/homepage',
+      '/api/blogs/public',
+      '/api/pages/public',
+      '/api/search',
+      '/api/global-settings/header',
+      '/api/global-settings/footer',
+      '/api/navigation',
+    ];
+
     if (publicPaths.some(p => pathname.startsWith(p))) {
+      return NextResponse.next();
+    }
+
+    if (request.method === 'GET' && publicReadPaths.some(p => pathname.startsWith(p))) {
       return NextResponse.next();
     }
 
@@ -236,8 +250,8 @@ export async function middleware(request) {
     }
   }
 
-  // 5. Protect dashboard pages
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/user-dashboard')) {
+  // 5. Protect dashboard and home pages
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/user-dashboard') || pathname === '/home' || pathname === '/admin') {
     if (pathname === '/dashboard/unauthorized') {
       return NextResponse.next();
     }
@@ -267,7 +281,7 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    // Check page-level permission
+    // Check page-level permission for dashboard pages
     if (pathname.startsWith('/dashboard/')) {
       const requiredPermission = getRequiredPagePermission(pathname);
       // Super Admin bypasses all checks

@@ -44,16 +44,31 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [show2FA, setShow2FA] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const otpRefs = useRef([]);
   const router = useRouter();
 
   useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          router.push('/home');
+        } else {
+          setCheckingAuth(false);
+        }
+      } catch {
+        setCheckingAuth(false);
+      }
+    }
+    checkAuth();
+
     const savedEmail = localStorage.getItem('rememberedEmail');
     if (savedEmail) {
       setEmail(savedEmail);
       setRememberMe(true);
     }
-  }, []);
+  }, [router]);
 
   const handleOtpChange = (index, value) => {
     if (value && !/^\d+$/.test(value)) return;
@@ -140,6 +155,34 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  if (checkingAuth) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-base)',
+        color: 'var(--text-muted)',
+        gap: '1rem',
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid var(--border-strong)',
+          borderTopColor: 'var(--primary)',
+          borderRadius: '50%',
+          animation: 'login-spin 0.8s linear infinite',
+        }} />
+        <p>Checking authentication...</p>
+        <style>{`
+          @keyframes login-spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="login-page">
       <AuthParticles />
@@ -221,6 +264,10 @@ export default function LoginPage() {
                 'Sign In'
               )}
             </button>
+
+            <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Don't have an account? <a href="/register" className="forgot-link">Register here</a>
+            </p>
 
             <div className="login-footer">
               <div className="security-badge">

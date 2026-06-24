@@ -1,43 +1,36 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { teamService } from '@/lib/services/teamService.js';
+import { teamMemberSchema } from '@/lib/validators/index.js';
+import { z } from 'zod';
+import { ValidationError } from '@/lib/errorLogger.js';
 
-export async function GET(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const teamMemberCreateSchema = teamMemberSchema.extend({
+  projectId: z.string().min(1, 'Project ID is required'),
+});
 
-  const { searchParams } = new URL(request.url);
-  const projectId = searchParams.get('projectId');
-
-  if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-  const members = await prisma.teamMember.findMany({
-    where: { projectId },
-    orderBy: { sortOrder: 'asc' },
-  });
-
-  return NextResponse.json({ members });
-}
-
-export async function POST(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const { projectId, name, role, photo, bio, socialLinks, sortOrder, isVisible } = body;
-
-  const member = await prisma.teamMember.create({
-    data: {
-      projectId,
-      name,
-      role,
-      photo,
-      bio,
-      socialLinks,
-      sortOrder: sortOrder || 0,
-      isVisible: isVisible ?? true,
-    },
-  });
-
-  return NextResponse.json({ member });
-}
+export const { GET, POST } = createApiHandler({
+  GET: {
+    auth: 'jwt',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const result = await teamService.getAll(projectId, query);
+      const members = Array.isArray(result) ? result : result.items;
+      const pagination = Array.isArray(result) ? null : result.pagination;
+      return { 
+        members,
+        ...(pagination && { pagination })
+      };
+    }
+  },
+  POST: {
+    auth: 'jwt',
+    schema: teamMemberCreateSchema,
+    handler: async ({ body }) => {
+      const member = await teamService.create(body);
+      return { member };
+    }
+  }
+});

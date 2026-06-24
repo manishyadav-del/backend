@@ -1,39 +1,36 @@
-import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth.js';
-import { prisma } from '@/lib/prisma.js';
+import { createApiHandler } from '@/lib/apiHandler.js';
+import { legalService } from '@/lib/services/legalService.js';
+import { legalPageSchema } from '@/lib/validators/index.js';
+import { z } from 'zod';
+import { ValidationError } from '@/lib/errorLogger.js';
 
-export async function GET(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const legalPageCreateSchema = legalPageSchema.extend({
+  projectId: z.string().min(1, 'Project ID is required'),
+});
 
-  const { searchParams } = new URL(request.url);
-  const projectId = searchParams.get('projectId');
-
-  if (!projectId) return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
-
-  const pages = await prisma.legalPage.findMany({
-    where: { projectId },
-    orderBy: { type: 'asc' },
-  });
-
-  return NextResponse.json({ pages });
-}
-
-export async function POST(request) {
-  const user = getAuthUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const { projectId, type, title, content } = body;
-
-  const page = await prisma.legalPage.create({
-    data: {
-      projectId,
-      type,
-      title,
-      content,
-    },
-  });
-
-  return NextResponse.json({ page });
-}
+export const { GET, POST } = createApiHandler({
+  GET: {
+    auth: 'jwt',
+    handler: async ({ query }) => {
+      const projectId = query.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID required');
+      }
+      const result = await legalService.getAll(projectId, query);
+      const pages = Array.isArray(result) ? result : result.items;
+      const pagination = Array.isArray(result) ? null : result.pagination;
+      return { 
+        pages,
+        ...(pagination && { pagination })
+      };
+    }
+  },
+  POST: {
+    auth: 'jwt',
+    schema: legalPageCreateSchema,
+    handler: async ({ body }) => {
+      const page = await legalService.create(body);
+      return { page };
+    }
+  }
+});

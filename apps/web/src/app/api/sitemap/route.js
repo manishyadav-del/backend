@@ -3,6 +3,8 @@ import { validateApiKey, unauthorizedResponse } from '@/lib/apiKey.js';
 import { prisma } from '@/lib/prisma.js';
 import { PAGE_STATUSES } from '@/lib/constants.js';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     const project = await validateApiKey(request);

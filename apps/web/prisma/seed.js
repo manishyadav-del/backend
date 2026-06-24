@@ -53,6 +53,11 @@ async function main() {
     { name: 'Sales Manager', description: 'Manages leads, form submissions, contacts, and notifications' },
     { name: 'SEO Manager', description: 'Manages search engine optimization, redirects, and analytics' },
     { name: 'Client User', description: 'Assigned client user with resource-specific access' },
+    { name: 'User', description: 'Regular user who can browse and read content' },
+    { name: 'Client', description: 'Client who can view content and contact authors' },
+    { name: 'Content Creator', description: 'Creates and manages their own posts' },
+    { name: 'Author', description: 'Writes and edits articles' },
+    { name: 'Contributor', description: 'Submits content for approval' },
   ];
 
   const dbRoles = {};
@@ -150,7 +155,7 @@ async function main() {
       id: 'clx1234567890abcdef02',
       name: 'Gobal Main Website',
       domain: 'gobal.com',
-      apiKey: 'gbl_api_key_main_2024',
+      apiKey: 'gbl_api_key_main_2024_v2',
       description: 'Main business website for Gobal - digital solutions provider',
       logo: '/uploads/logo.png',
       favicon: '/uploads/favicon.ico',

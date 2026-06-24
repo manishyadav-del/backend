@@ -12,20 +12,30 @@ const LOADING_STATES = {
 
 export default function DashboardOverview() {
   const [data, setData] = useState(null);
+  const [connectedWebsites, setConnectedWebsites] = useState([]);
   const [loadingState, setLoadingState] = useState(LOADING_STATES.LOADING);
   const [error, setError] = useState(null);
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoadingState(LOADING_STATES.LOADING);
-      const res = await fetch('/api/dashboard/stats');
-      if (!res.ok) throw new Error('Failed to fetch dashboard data');
-      const result = await res.json();
-      if (result.success) {
-        setData(result.data);
+      const [statsRes, websitesRes] = await Promise.all([
+        fetch('/api/dashboard/stats'),
+        fetch('/api/websites')
+      ]);
+
+      if (!statsRes.ok) throw new Error('Failed to fetch dashboard stats');
+      if (!websitesRes.ok) throw new Error('Failed to fetch websites list');
+
+      const statsJson = await statsRes.json();
+      const websitesJson = await websitesRes.json();
+
+      if (statsJson.success && websitesJson.success) {
+        setData(statsJson.data);
+        setConnectedWebsites(websitesJson.data || []);
         setLoadingState(LOADING_STATES.SUCCESS);
       } else {
-        throw new Error(result.error || 'Failed to load data');
+        throw new Error(statsJson.error || websitesJson.error || 'Failed to load data');
       }
     } catch (err) {
       setError(err.message);
@@ -162,6 +172,14 @@ export default function DashboardOverview() {
       sub: `${stats.activeServices || 0} active services`,
       color: 'amber',
       href: '/dashboard/services',
+    },
+    {
+      label: 'Connected Sites',
+      value: stats.totalWebsites || 0,
+      icon: '🔌',
+      sub: `${stats.activeWebsites || 0} online · ${stats.totalConnectedRoutes || 0} routes`,
+      color: 'indigo',
+      href: '/dashboard/websites',
     },
     {
       label: 'Blog Posts',
@@ -432,6 +450,99 @@ export default function DashboardOverview() {
                   <div className="empty-icon">📅</div>
                   <div className="empty-title">No upcoming tasks</div>
                   <div className="empty-desc">Schedule pages to appear here</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Widget 5.5: Connected Websites List */}
+        <div className="col-6">
+          <div className="activity-panel">
+            <div className="activity-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="activity-panel-title">Connected Websites ({connectedWebsites.length})</div>
+              <Link href="/dashboard/websites" className="view-all-link">
+                Manage all →
+              </Link>
+            </div>
+            <div className="activity-list-modern" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.5rem 0' }}>
+              {connectedWebsites.length > 0 ? (
+                connectedWebsites.map((site) => (
+                  <div key={site.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '1.25rem' }}>
+                        {site.framework === 'wordpress' ? '🌐' : '💻'}
+                      </span>
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.875rem', color: 'var(--text-h1)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {site.name}
+                          <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', borderRadius: '3px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)' }}>
+                            {site.framework.toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{site.domain}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0.5rem', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 'bold', background: site.status === 'connected' ? 'var(--success-bg)' : 'var(--danger-bg)', color: site.status === 'connected' ? 'var(--success)' : 'var(--danger)', border: site.status === 'connected' ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(239,68,68,0.2)' }}>
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: site.status === 'connected' ? 'var(--success)' : 'var(--danger)', display: 'inline-block' }} />
+                        {site.status === 'connected' ? 'ONLINE' : 'ERROR'}
+                      </span>
+                      <Link href={`/dashboard/websites/${site.id}`} style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none' }}>
+                        Sync →
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state" style={{ padding: '1.5rem' }}>
+                  <div className="empty-icon">🌐</div>
+                  <div className="empty-title">No websites connected</div>
+                  <div className="empty-desc">
+                    <Link href="/dashboard/websites" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Connect a site</Link> to sync CMS content
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Widget 5.6: Website Connector Activity Log */}
+        <div className="col-6">
+          <div className="activity-panel">
+            <div className="activity-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="activity-panel-title">Website Sync Log</div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                Last Sync: {stats.lastSyncTime ? new Date(stats.lastSyncTime).toLocaleTimeString() : 'Never'}
+              </span>
+            </div>
+            <div className="activity-list-modern" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.5rem 0' }}>
+              {data.websiteLogs && data.websiteLogs.length > 0 ? (
+                data.websiteLogs.map((log) => (
+                  <div key={log.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                    <span style={{ fontSize: '1.1rem' }}>
+                      {log.status === 'success' ? '🟢' : '🔴'}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--text-h1)' }}>
+                          {log.websiteName} · {log.action}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                          {log.timeAgo}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                        {log.details}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state" style={{ padding: '1.5rem' }}>
+                  <div className="empty-icon">📋</div>
+                  <div className="empty-title">No website logs yet</div>
+                  <div className="empty-desc">Sync activity will be logged here.</div>
                 </div>
               )}
             </div>
@@ -1036,23 +1147,23 @@ export default function DashboardOverview() {
         }
 
         @media (max-width: 480px) {
-  .page-title {
-    font-size: 1.5rem;
-  }
+            .page-title {
+              font-size: 1.5rem;
+            }
 
-  .dashboard-stats {
-    grid-template-columns: 1fr;
-  }
+            .dashboard-stats {
+              grid-template-columns: 1fr;
+            }
 
-  .analytics-metrics {
-    grid-template-columns: 1fr;
-  }
+            .analytics-metrics {
+              grid-template-columns: 1fr;
+            }
 
-  .quick-actions-modern {
-    grid-template-columns: 1fr;
-  }
-}
-`}</style>
-</div>
-);
-}
+            .quick-actions-modern {
+              grid-template-columns: 1fr;
+            }
+          }
+          `}</style>
+          </div>
+          );
+          }

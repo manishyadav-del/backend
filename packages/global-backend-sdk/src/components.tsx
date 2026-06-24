@@ -1,12 +1,92 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import Script from 'next/script';
 import { Settings, PageSection } from './types.js';
+import { useComponentData } from './hooks.js';
 
 const GlobalBackendContext = createContext<any>(null);
 
 export function GlobalBackendProvider({ children, client }: { children: React.ReactNode; client: any }) {
+  const [isolateName, setIsolateName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const name = params.get('isolateComponent') || params.get('previewComponent');
+      setIsolateName(name);
+    }
+  }, []);
+
   return (
     <GlobalBackendContext.Provider value={client}>
+      {isolateName && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          /* Hide all standard direct children of body */
+          body > * {
+            display: none !important;
+          }
+          
+          /* Reveal isolated custom component containers */
+          [data-global-component="${isolateName}"] {
+            display: block !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999999 !important;
+            background: #ffffff !important;
+            overflow: auto !important;
+            padding: 2rem !important;
+            box-sizing: border-box !important;
+          }
+
+          /* Specifically reveal Header when isolated */
+          ${isolateName.toLowerCase() === 'header' ? `
+            header {
+              display: block !important;
+              position: relative !important;
+              top: 0 !important;
+              left: 0 !important;
+              width: 100% !important;
+              z-index: 9999999 !important;
+            }
+            body > header,
+            body > div > header,
+            body > main > header {
+              display: block !important;
+            }
+          ` : ''}
+
+          /* Specifically reveal Footer when isolated */
+          ${isolateName.toLowerCase() === 'footer' ? `
+            footer {
+              display: block !important;
+              position: relative !important;
+              bottom: 0 !important;
+              width: 100% !important;
+              z-index: 9999999 !important;
+            }
+            body > footer,
+            body > div > footer,
+            body > main > footer {
+              display: block !important;
+            }
+          ` : ''}
+
+          /* Ensure parent container chain of the target isolated elements is visible */
+          div:has([data-global-component="${isolateName}"]),
+          main:has([data-global-component="${isolateName}"]),
+          #__next:has([data-global-component="${isolateName}"]),
+          div:has(header),
+          main:has(header),
+          #__next:has(header),
+          div:has(footer),
+          main:has(footer),
+          #__next:has(footer) {
+            display: block !important;
+          }
+        `}} />
+      )}
       {children}
     </GlobalBackendContext.Provider>
   );
@@ -15,6 +95,57 @@ export function GlobalBackendProvider({ children, client }: { children: React.Re
 export function useGlobalBackend() {
   return useContext(GlobalBackendContext);
 }
+
+/**
+ * GlobalComponent — wrapper component that fetches dynamic backend data and injects it into the component's props.
+ */
+export function GlobalComponent({
+  componentId,
+  component: Component,
+  fallbackProps = {},
+  routePath
+}: {
+  componentId: string;
+  component: React.ComponentType<any>;
+  fallbackProps?: any;
+  routePath?: string;
+}) {
+  const client = useGlobalBackend();
+  const { data } = useComponentData(client, componentId, fallbackProps, routePath);
+
+  return (
+    <div data-global-component={componentId} style={{ display: 'contents' }}>
+      <Component {...(data || fallbackProps)} componentId={componentId} />
+    </div>
+  );
+}
+
+/**
+ * withGlobalComponent — high-order component to make any component automatically fetch backend data if componentId is supplied.
+ */
+export function withGlobalComponent<P extends object>(
+  Component: React.ComponentType<P>,
+  componentName: string
+) {
+  return function WrappedComponent(props: P & { componentId?: string; routePath?: string }) {
+    const client = useGlobalBackend();
+    const { componentId, routePath, ...rest } = props;
+
+    // If no componentId is supplied, render as is
+    if (!componentId) {
+      return <Component {...props} />;
+    }
+
+    const { data } = useComponentData(client, componentName, rest, routePath);
+
+    return (
+      <div data-global-component={componentName} style={{ display: 'contents' }}>
+        <Component {...(data || rest) as P} />
+      </div>
+    );
+  };
+}
+
 
 export function SchemaScript({ schema }: { schema: any }) {
   if (!schema) return null;
