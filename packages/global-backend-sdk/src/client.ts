@@ -14,9 +14,65 @@ export class GlobalBackendSDK extends BaseSDK {
   }) {
     super(config);
   }
+
+  override async initialize() {
+    await super.initialize();
+    
+    // Sync registered pages to global backend
+    if (globalPageRegistry.length > 0) {
+      try {
+        const registryRoutes = globalPageRegistry.map(item => ({
+          slug: item.route,
+          isDynamic: /\[.+\]/.test(item.route),
+          name: item.name,
+          title: item.title || item.name,
+          layout: item.layout,
+          appName: item.appName
+        }));
+
+        const url = `${this.backendUrl}/api/sync/pages`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': this.apiKey,
+          },
+          body: JSON.stringify({ routes: registryRoutes })
+        });
+        
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || response.statusText);
+        }
+
+        if ((this as any).debugMode) {
+          console.log(`[GlobalBackendSDK] Successfully synced ${globalPageRegistry.length} registered pages to ${url}`);
+        }
+      } catch (err: any) {
+        console.warn('[GlobalBackendSDK] Page registry sync failed during initialization:', err.message);
+      }
+    }
+  }
+}
+
+export interface PageRegistryItem {
+  name: string;
+  route: string;
+  title?: string;
+  layout?: string;
+  appName?: string;
+}
+
+const globalPageRegistry: PageRegistryItem[] = [];
+
+export function registerPage(meta: PageRegistryItem) {
+  globalPageRegistry.push(meta);
 }
 
 export class GlobalBackendClient {
+  public registerPage(meta: PageRegistryItem) {
+    registerPage(meta);
+  }
   private apiKey: string;
   private apiUrl: string;
   public syncManager: SyncManager | null = null;
@@ -37,19 +93,51 @@ export class GlobalBackendClient {
       ...options.headers,
     };
 
-    const response = await fetch(url, { ...options, headers });
-    const data = await response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
 
-    if (!response.ok) {
-      throw new Error(data.error || `Request failed: ${response.statusText}`);
+    try {
+      const response = await globalThis.fetch(url, {
+        ...options,
+        headers,
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Request failed: ${response.statusText}`);
+      }
+      return data;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timed out after 6 seconds while calling ${url}`);
+      }
+      throw error;
     }
-
-    return data;
   }
 
   async getSettings(): Promise<Settings> {
     const data = await this.fetch('/global-settings?apiKey=' + encodeURIComponent(this.apiKey));
     return data.data || data.settings || data;
+  }
+
+  async getHeader(projectId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    const pId = projectId || (typeof process !== 'undefined' && process.env?.GLOBAL_BACKEND_WEBSITE_ID);
+    if (pId) params.set('projectId', pId);
+    const data = await this.fetch(`/global-settings/header?${params.toString()}`);
+    return data.data || data;
+  }
+
+  async getFooter(projectId?: string): Promise<any> {
+    const params = new URLSearchParams();
+    const pId = projectId || (typeof process !== 'undefined' && process.env?.GLOBAL_BACKEND_WEBSITE_ID);
+    if (pId) params.set('projectId', pId);
+    const data = await this.fetch(`/global-settings/footer?${params.toString()}`);
+    return data.data || data;
   }
 
   async getPage(slug: string): Promise<Page> {
@@ -62,6 +150,67 @@ export class GlobalBackendClient {
     const encoded = encodeURIComponent(slug);
     const data = await this.fetch(`/seo/by-slug/${encoded}`);
     return data.seo || data.data || data;
+  }
+
+  async getLegalPage(type: string): Promise<any> {
+    const encoded = encodeURIComponent(type);
+    const data = await this.fetch(`/legal/public/${encoded}`);
+    return data.legalPage || data.data || data;
+  }
+
+  /**
+   * getNavigation — fetch navigation menus by location (e.g. 'header', 'footer').
+   * Returns the menu items array for the given location, or all menus if no location given.
+   */
+  async getNavigation(location?: string): Promise<any[]> {
+    const qs = location ? `?location=${encodeURIComponent(location)}` : '';
+    const data = await this.fetch(`/navigation/public${qs}`);
+    const menus: any[] = data.menus || [];
+    if (location && menus.length > 0) {
+      // Flatten items from the first matched menu
+      return menus[0]?.items || [];
+    }
+    return menus;
+  }
+
+  /**
+   * getBlogs — fetch published blogs from the backend.
+   */
+  async getBlogs(options: { page?: number; limit?: number; category?: string; search?: string; status?: string; pagePath?: string } = {}): Promise<{ blogs: any[]; pagination?: any }> {
+    const params = new URLSearchParams();
+    if (options.page) params.set('page', String(options.page));
+    if (options.limit) params.set('limit', String(options.limit));
+    if (options.category) params.set('category', options.category);
+    if (options.search) params.set('search', options.search);
+    if (options.status) params.set('status', options.status);
+    if (options.pagePath) params.set('pagePath', options.pagePath);
+    const data = await this.fetch(`/blogs/public?${params.toString()}`);
+    return { blogs: data.blogs || [], pagination: data.pagination };
+  }
+
+  /**
+   * getPages — fetch CMS pages from the backend.
+   */
+  async getPages(options: { status?: string; limit?: number; page?: number } = {}): Promise<{ pages: any[]; pagination?: any }> {
+    const params = new URLSearchParams();
+    if (options.status) params.set('status', options.status);
+    if (options.page) params.set('page', String(options.page));
+    if (options.limit) params.set('limit', String(options.limit));
+    const data = await this.fetch(`/pages/public?${params.toString()}`);
+    return { pages: data.pages || [], pagination: data.pagination };
+  }
+
+  /**
+   * getMedia — fetch media library items from the backend.
+   */
+  async getMedia(options: { limit?: number; type?: string; folder?: string; projectId?: string } = {}): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (options.limit) params.set('limit', String(options.limit));
+    if (options.type) params.set('type', options.type);
+    if (options.folder) params.set('folder', options.folder);
+    if (options.projectId) params.set('projectId', options.projectId);
+    const data = await this.fetch(`/media?${params.toString()}`);
+    return data.media || data.items || data.files || [];
   }
 
   /**
@@ -166,6 +315,31 @@ export class GlobalBackendClient {
         }
       } catch (err: any) {
         console.warn('[GlobalBackend] Route sync warning:', err.message);
+      }
+    }
+
+    // 3c. Sync registered pages to /sync/pages
+    if (globalPageRegistry.length > 0) {
+      try {
+        const registryRoutes = globalPageRegistry.map(item => ({
+          slug: item.route,
+          isDynamic: /\[.+\]/.test(item.route),
+          name: item.name,
+          title: item.title || item.name,
+          layout: item.layout,
+          appName: item.appName
+        }));
+
+        await this.fetch('/sync/pages', {
+          method: 'POST',
+          body: JSON.stringify({ routes: registryRoutes })
+        });
+
+        if (options.debug) {
+          console.log(`[GlobalBackend] Synced ${globalPageRegistry.length} registered pages`);
+        }
+      } catch (err: any) {
+        console.warn('[GlobalBackend] Pages registry sync warning:', err.message);
       }
     }
 
