@@ -47,6 +47,19 @@ export async function POST(request) {
     const filePath = path.join(uploadDir, filename);
     await fs.writeFile(filePath, buffer);
 
+    // Also save to frontend public/uploads directory if it exists
+    try {
+      const frontendDir = path.join(process.cwd(), '..', '..', '..', 'ahealthplace-website', 'public', 'uploads', projectId);
+      if (!existsSync(frontendDir)) {
+        mkdirSync(frontendDir, { recursive: true });
+      }
+      const frontendFilePath = path.join(frontendDir, filename);
+      await fs.writeFile(frontendFilePath, buffer);
+      console.log(`[Upload] Successfully copied media file to frontend at: ${frontendFilePath}`);
+    } catch (err) {
+      console.warn('[Upload] Note: Could not copy uploaded file to frontend folder:', err.message);
+    }
+
     const url = `/uploads/${projectId}/${filename}`;
 
     return NextResponse.json({

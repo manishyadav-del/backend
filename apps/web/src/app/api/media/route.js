@@ -16,10 +16,13 @@ export const { GET, POST } = createApiHandler({
       if (!projectId) {
         throw new ValidationError('Project ID required');
       }
+      // Sync media from the frontend public/uploads folder dynamically
+      await mediaService.syncFrontendMedia(projectId);
+      
       const result = await mediaService.getAll(projectId, query);
       const media = Array.isArray(result) ? result : result.items;
       const pagination = Array.isArray(result) ? null : result.pagination;
-      return { 
+      return {
         media,
         ...(pagination && { pagination })
       };

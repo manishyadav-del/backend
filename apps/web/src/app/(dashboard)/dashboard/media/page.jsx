@@ -34,11 +34,30 @@ export default function MediaPage() {
     folder: 'root',
   });
 
-  const projectId = 'demo';
+  const [websites, setWebsites] = useState([]);
+  const [projectId, setProjectId] = useState('demo');
 
   useEffect(() => {
-    loadMedia();
+    const loadWebsites = async () => {
+      try {
+        const res = await fetch('/api/websites');
+        const data = await res.json();
+        if (res.ok && data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setWebsites(data.data);
+          setProjectId(data.data[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load websites:', err);
+      }
+    };
+    loadWebsites();
   }, []);
+
+  useEffect(() => {
+    if (projectId) {
+      loadMedia(projectId);
+    }
+  }, [projectId]);
 
   useEffect(() => {
     if (selectedMedia) {
@@ -50,10 +69,11 @@ export default function MediaPage() {
     }
   }, [selectedMedia]);
 
-  const loadMedia = async () => {
+  const loadMedia = async (pId = projectId) => {
+    if (!pId) return;
     try {
       setLoading(true);
-      const data = await mediaApi.getAll(projectId);
+      const data = await mediaApi.getAll(pId);
       setMedia(data.media || []);
       setError(null);
     } catch (err) {
@@ -371,8 +391,34 @@ export default function MediaPage() {
 
   return (
     <div className="media-page" style={{ position: 'relative', minHeight: '80vh' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1>Media Library</h1>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+          <h1 style={{ margin: 0 }}>Media Library</h1>
+          {websites.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Project:</span>
+              <select
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.4rem 1.5rem 0.4rem 0.75rem',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {websites.map(site => (
+                  <option key={site.id} value={site.id}>{site.name} ({site.domain})</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
         <button onClick={() => setShowUploadModal(true)} className="btn-primary">+ Upload Media</button>
       </div>
 
