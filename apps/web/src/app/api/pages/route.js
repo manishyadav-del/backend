@@ -12,13 +12,7 @@ export const { GET, POST } = createApiHandler({
   GET: {
     auth: 'dual',
     handler: async ({ query, project }) => {
-      let projectId = project?.id;
-      if (!projectId) {
-        projectId = query.projectId;
-        if (!projectId) {
-          throw new ValidationError('Project ID required');
-        }
-      }
+      const projectId = project?.id || query.projectId || 'all';
       const result = await pageService.getAll(projectId, query);
       const pages = Array.isArray(result) ? result : result.items;
       const pagination = Array.isArray(result) ? null : result.pagination;

@@ -12,8 +12,11 @@ import prisma from './prisma.js';
  * @param {Request} request
  * @returns {Promise<object|null>} project object or null if invalid
  */
-export async function validateApiKey(request) {
-  const apiKey = request.headers.get('x-api-key');
+export async function validateApiKey(requestOrKey) {
+  let apiKey = typeof requestOrKey === 'string' ? requestOrKey : null;
+  if (!apiKey && requestOrKey && typeof requestOrKey.headers?.get === 'function') {
+    apiKey = requestOrKey.headers.get('x-api-key');
+  }
 
   if (!apiKey) {
     return null;
@@ -25,7 +28,8 @@ export async function validateApiKey(request) {
     });
 
     return project;
-  } catch {
+  } catch (err) {
+    console.error('[validateApiKey] Database error:', err);
     return null;
   }
 }

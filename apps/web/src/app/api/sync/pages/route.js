@@ -25,15 +25,17 @@ export async function POST(request) {
           projectId_slug: { projectId: project.id, slug: route.slug }
         },
         update: {
-          isDynamic: route.isDynamic || false,
-          lastSyncedAt: syncTime,
+          title: route.title || route.name || undefined,
+          template: route.layout || undefined,
+          isHome: route.slug === '/' || route.slug === '',
         },
         create: {
           projectId: project.id,
           slug: route.slug,
-          isDynamic: route.isDynamic || false,
+          title: route.title || route.name || route.slug || 'Untitled Page',
+          template: route.layout || null,
+          isHome: route.slug === '/' || route.slug === '',
           status: PAGE_STATUSES.DRAFT,
-          lastSyncedAt: syncTime,
         }
       });
     }

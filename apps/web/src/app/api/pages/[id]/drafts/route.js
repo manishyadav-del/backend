@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = await params;
 
     const drafts = await prisma.pageDraft.findMany({
       where: { pageId: id },
@@ -29,8 +29,11 @@ export async function POST(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
-    const body = await request.json();
+    const { id } = await params;
+    let body = {};
+    try {
+      body = await request.json();
+    } catch (_) {}
     const { title, slug, content, sections, banner, seo, changeLog } = body;
 
     const page = await prisma.page.findUnique({

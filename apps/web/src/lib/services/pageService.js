@@ -8,7 +8,10 @@ export class PageService extends BaseService {
   }
 
   async getAll(projectId, queryOptions = {}) {
-    const where = { projectId };
+    const where = {};
+    if (projectId && projectId !== 'all') {
+      where.projectId = projectId;
+    }
     
     if (queryOptions.status) {
       where.status = queryOptions.status;
@@ -24,6 +27,7 @@ export class PageService extends BaseService {
       ...queryOptions,
       include: {
         seo: true,
+        project: true,
         sections_rel: {
           where: { isDeleted: false },
           orderBy: { sortOrder: 'asc' }

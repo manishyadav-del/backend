@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { ValidationError } from '@/lib/errorLogger.js';
 
 const formSubmissionCreateSchema = formSubmissionSchema.extend({
-  projectId: z.string().min(1, 'Project ID is required'),
+  projectId: z.string().optional(),
 });
 
 export const { GET, POST } = createApiHandler({
@@ -26,10 +26,14 @@ export const { GET, POST } = createApiHandler({
     }
   },
   POST: {
-    auth: 'jwt',
+    auth: 'dual',
     schema: formSubmissionCreateSchema,
-    handler: async ({ body }) => {
-      const submission = await formService.create(body);
+    handler: async ({ body, project, user }) => {
+      const projectId = project?.id || body.projectId || user?.projectId;
+      if (!projectId) {
+        throw new ValidationError('Project ID is required');
+      }
+      const submission = await formService.create({ ...body, projectId });
       return { submission };
     }
   }

@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = await params;
 
     const sections = await prisma.pageSection.findMany({
       where: {
@@ -31,8 +31,11 @@ export async function POST(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
-    const body = await request.json();
+    const { id } = await params;
+    let body = {};
+    try {
+      body = await request.json();
+    } catch (_) {}
     const { type, title, content, settings, parentId, template, insertAfter } = body;
 
     if (!type) {
