@@ -4,8 +4,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import WebsiteAssignmentTab from '@/components/WebsiteAssignmentTab.jsx';
 
-const PROJECT_ID = 'default';
-
 export default function HeaderBuilderPage() {
   const [activeTab, setActiveTab] = useState('editor'); // editor, assignments
   const [logo, setLogo] = useState('');
@@ -32,12 +30,13 @@ export default function HeaderBuilderPage() {
   const socketRef = useRef(null);
   const iframeRef = useRef(null);
 
-  const loadHeader = useCallback(async () => {
+  const loadHeader = useCallback(async (projectId) => {
+    if (!projectId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/global-settings/header?projectId=${PROJECT_ID}`);
+      const res = await fetch(`/api/global-settings/header?projectId=${projectId}`);
       const data = await res.json();
-      if (data.success && data.data) {
+      if (data.success && data.data && Object.keys(data.data).length > 0) {
         const config = data.data;
         setLogo(config.logo || '');
         setSticky(config.sticky ?? true);
@@ -48,6 +47,17 @@ export default function HeaderBuilderPage() {
         setTransparent(config.transparent ?? false);
         setAnnouncementBarActive(config.announcementBarActive ?? false);
         setAnnouncementBarText(config.announcementBarText || '');
+      } else {
+        // Reset to default settings if no custom header exists
+        setLogo('');
+        setSticky(true);
+        setStyle('modern');
+        setNavLinks([]);
+        setCtaText('');
+        setCtaLink('');
+        setTransparent(false);
+        setAnnouncementBarActive(false);
+        setAnnouncementBarText('');
       }
     } catch {
       setError('Failed to load header settings');
@@ -72,7 +82,6 @@ export default function HeaderBuilderPage() {
   };
 
   useEffect(() => {
-    loadHeader();
     fetchWebsites();
 
     // Socket status link
@@ -94,10 +103,20 @@ export default function HeaderBuilderPage() {
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
     };
-  }, [loadHeader]);
+  }, []);
+
+  useEffect(() => {
+    if (selectedWebsiteId) {
+      loadHeader(selectedWebsiteId);
+    }
+  }, [selectedWebsiteId, loadHeader]);
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    if (!selectedWebsiteId) {
+      setError('No website selected');
+      return;
+    }
     setSaving(true);
     setError('');
     setMessage('');
@@ -107,7 +126,7 @@ export default function HeaderBuilderPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          projectId: PROJECT_ID,
+          projectId: selectedWebsiteId,
           logo,
           sticky,
           style,

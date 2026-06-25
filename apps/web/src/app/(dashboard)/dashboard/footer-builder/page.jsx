@@ -4,14 +4,20 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import WebsiteAssignmentTab from '@/components/WebsiteAssignmentTab.jsx';
 
-const PROJECT_ID = 'default';
-
 export default function FooterBuilderPage() {
   const [activeTab, setActiveTab] = useState('editor'); // editor, assignments
   const [columns, setColumns] = useState([]);
   const [copyright, setCopyright] = useState('');
   const [socialLinks, setSocialLinks] = useState([]);
   const [showNewsletter, setShowNewsletter] = useState(true);
+  
+  // Custom enhanced states
+  const [logo, setLogo] = useState('');
+  const [description, setDescription] = useState('');
+  const [barcodeImage, setBarcodeImage] = useState('');
+  const [barcodeLink, setBarcodeLink] = useState('');
+  const [contactTitle, setContactTitle] = useState('CONTACT');
+  const [contactEmail, setContactEmail] = useState('');
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,12 +33,13 @@ export default function FooterBuilderPage() {
   const socketRef = useRef(null);
   const iframeRef = useRef(null);
 
-  const loadFooter = useCallback(async () => {
+  const loadFooter = useCallback(async (projectId) => {
+    if (!projectId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/global-settings/footer?projectId=${PROJECT_ID}`);
+      const res = await fetch(`/api/global-settings/footer?projectId=${projectId}`);
       const data = await res.json();
-      if (data.success && data.data) {
+      if (data.success && data.data && Object.keys(data.data).length > 0) {
         const config = data.data;
         let parsedCols = config.columns || [];
         if (typeof parsedCols === 'number') {
@@ -56,6 +63,25 @@ export default function FooterBuilderPage() {
         setCopyright(config.copyright || '');
         setSocialLinks(config.socialLinks || []);
         setShowNewsletter(config.showNewsletter ?? true);
+        
+        setLogo(config.logo || '');
+        setDescription(config.description || '');
+        setBarcodeImage(config.barcodeImage || '');
+        setBarcodeLink(config.barcodeLink || '');
+        setContactTitle(config.contactTitle || 'CONTACT');
+        setContactEmail(config.contactEmail || '');
+      } else {
+        // Reset to default settings if no custom footer exists
+        setColumns([]);
+        setCopyright('');
+        setSocialLinks([]);
+        setShowNewsletter(true);
+        setLogo('');
+        setDescription('');
+        setBarcodeImage('');
+        setBarcodeLink('');
+        setContactTitle('CONTACT');
+        setContactEmail('');
       }
     } catch {
       setError('Failed to load footer settings');
@@ -80,7 +106,6 @@ export default function FooterBuilderPage() {
   };
 
   useEffect(() => {
-    loadFooter();
     fetchWebsites();
 
     const initSocket = async () => {
@@ -101,10 +126,20 @@ export default function FooterBuilderPage() {
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
     };
-  }, [loadFooter]);
+  }, []);
+
+  useEffect(() => {
+    if (selectedWebsiteId) {
+      loadFooter(selectedWebsiteId);
+    }
+  }, [selectedWebsiteId, loadFooter]);
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    if (!selectedWebsiteId) {
+      setError('No website selected');
+      return;
+    }
     setSaving(true);
     setError('');
     setMessage('');
@@ -114,11 +149,17 @@ export default function FooterBuilderPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          projectId: PROJECT_ID,
+          projectId: selectedWebsiteId,
           columns,
           copyright,
           socialLinks,
           showNewsletter,
+          logo,
+          description,
+          barcodeImage,
+          barcodeLink,
+          contactTitle,
+          contactEmail,
         }),
       });
 
@@ -309,9 +350,89 @@ export default function FooterBuilderPage() {
                     {saving ? 'Publishing...' : '💾 Save & Publish'}
                   </button>
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
                   
+                  {/* Brand & About Info */}
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text-h1)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      🏢 Brand & About Info
+                    </h2>
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>Footer Logo URL</label>
+                      <input 
+                        type="text" 
+                        value={logo} 
+                        onChange={(e) => setLogo(e.target.value)} 
+                        placeholder="e.g. /Logo-Main.png or https://..."
+                        style={inp}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>Footer About Description</label>
+                      <textarea 
+                        value={description} 
+                        onChange={(e) => setDescription(e.target.value)} 
+                        placeholder="A brief description of your organization for the footer."
+                        rows={3}
+                        style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Barcode Settings */}
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text-h1)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      🔤 Barcode Verification Settings
+                    </h2>
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>Barcode Image URL</label>
+                      <input 
+                        type="text" 
+                        value={barcodeImage} 
+                        onChange={(e) => setBarcodeImage(e.target.value)} 
+                        placeholder="e.g. /AHP-Web.jpg or https://..."
+                        style={inp}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>Barcode Target Link URL</label>
+                      <input 
+                        type="text" 
+                        value={barcodeLink} 
+                        onChange={(e) => setBarcodeLink(e.target.value)} 
+                        placeholder="e.g. https://portal.issn.org/resource/ISSN/3066-5000"
+                        style={inp}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text-h1)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      📞 Footer Contact Details
+                    </h2>
+                    <div className="form-group" style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>Contact Section Title</label>
+                      <input 
+                        type="text" 
+                        value={contactTitle} 
+                        onChange={(e) => setContactTitle(e.target.value)} 
+                        placeholder="e.g. CONTACT"
+                        style={inp}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', fontWeight: 600 }}>Contact Email Address</label>
+                      <input 
+                        type="email" 
+                        value={contactEmail} 
+                        onChange={(e) => setContactEmail(e.target.value)} 
+                        placeholder="e.g. ahealthplace@gmail.com"
+                        style={inp}
+                      />
+                    </div>
+                  </div>
+
                   {/* General Config */}
                   <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '1.5rem' }}>
                     <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text-h1)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

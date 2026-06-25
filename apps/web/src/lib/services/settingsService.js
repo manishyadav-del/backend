@@ -86,6 +86,23 @@ export class SettingsService extends BaseService {
     super('globalSetting');
   }
 
+  async resolveProjectId(id) {
+    if (!id) return 'default';
+    
+    // 1. Check if ID matches a Project
+    const projectExists = await prisma.project.count({ where: { id } });
+    if (projectExists > 0) return id;
+
+    // 2. Check if ID matches a Website
+    const website = await prisma.website.findUnique({ where: { id } });
+    if (website && website.apiKey) {
+      const project = await prisma.project.findUnique({ where: { apiKey: website.apiKey } });
+      if (project) return project.id;
+    }
+
+    return id;
+  }
+
   async getGlobalSettings(apiKey) {
     const data = await getCachedGlobalSettings(apiKey);
     if (!data) {
@@ -146,7 +163,8 @@ export class SettingsService extends BaseService {
   }
 
   async getHeaderSettings(projectId) {
-    const settings = await prisma.globalSetting.findUnique({ where: { projectId } });
+    const resolvedId = await this.resolveProjectId(projectId);
+    const settings = await prisma.globalSetting.findUnique({ where: { projectId: resolvedId } });
     let headerSettings = {};
     try {
       headerSettings = settings?.headerSettings ? JSON.parse(settings.headerSettings) : {};
@@ -155,10 +173,11 @@ export class SettingsService extends BaseService {
   }
 
   async updateHeaderSettings(projectId, headerConfig, userId) {
+    const resolvedId = await this.resolveProjectId(projectId);
     const settings = await prisma.globalSetting.upsert({
-      where: { projectId },
+      where: { projectId: resolvedId },
       update: { headerSettings: JSON.stringify(headerConfig) },
-      create: { projectId, headerSettings: JSON.stringify(headerConfig) },
+      create: { projectId: resolvedId, headerSettings: JSON.stringify(headerConfig) },
     });
 
     revalidateTag('global-settings');
@@ -177,7 +196,8 @@ export class SettingsService extends BaseService {
   }
 
   async getFooterSettings(projectId) {
-    const settings = await prisma.globalSetting.findUnique({ where: { projectId } });
+    const resolvedId = await this.resolveProjectId(projectId);
+    const settings = await prisma.globalSetting.findUnique({ where: { projectId: resolvedId } });
     let footerSettings = {};
     try {
       footerSettings = settings?.footerSettings ? JSON.parse(settings.footerSettings) : {};
@@ -186,10 +206,11 @@ export class SettingsService extends BaseService {
   }
 
   async updateFooterSettings(projectId, footerConfig, userId) {
+    const resolvedId = await this.resolveProjectId(projectId);
     const settings = await prisma.globalSetting.upsert({
-      where: { projectId },
+      where: { projectId: resolvedId },
       update: { footerSettings: JSON.stringify(footerConfig) },
-      create: { projectId, footerSettings: JSON.stringify(footerConfig) },
+      create: { projectId: resolvedId, footerSettings: JSON.stringify(footerConfig) },
     });
 
     revalidateTag('global-settings');
