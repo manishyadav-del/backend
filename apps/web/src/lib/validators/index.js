@@ -3,7 +3,10 @@ import { z } from 'zod';
 export const pageSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   slug: z.string().min(1, 'Slug is required'),
-  status: z.enum(['draft', 'published', 'archived', 'scheduled']).optional(),
+  status: z.preprocess(
+    (val) => typeof val === 'string' ? val.toLowerCase() : val,
+    z.enum(['draft', 'published', 'archived', 'scheduled'])
+  ).optional(),
   banner: z.string().optional().nullable(),
   template: z.string().optional().nullable(),
   isHome: z.boolean().optional(),
@@ -28,9 +31,11 @@ export const blogSchema = z.object({
   featuredImage: z.string().optional().nullable(),
   author: z.string().optional().nullable(),
   status: z.string().optional(),
+  publishedAt: z.string().optional().nullable(),
   scheduledAt: z.string().optional().nullable(),
   seoTitle: z.string().optional().nullable(),
   seoDescription: z.string().optional().nullable(),
+  targetPages: z.union([z.string(), z.array(z.string())]).optional().nullable(),
 });
 
 export const leadSchema = z.object({

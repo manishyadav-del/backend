@@ -31,7 +31,7 @@ export class BlogService extends BaseService {
     const { projectId, slug } = data;
     
     const existing = await prisma.blog.findFirst({
-      where: { projectId, slug }
+      where: { slug }
     });
     if (existing) {
       throw new ConflictError('Blog with this slug already exists');
@@ -56,6 +56,16 @@ export class BlogService extends BaseService {
       payload.scheduledAt = null;
     }
 
+    if (payload.targetPages !== undefined) {
+      if (Array.isArray(payload.targetPages)) {
+        payload.targetPages = JSON.stringify(payload.targetPages);
+      } else if (payload.targetPages === null) {
+        payload.targetPages = null;
+      } else if (typeof payload.targetPages === 'object') {
+        payload.targetPages = JSON.stringify(payload.targetPages);
+      }
+    }
+
     return super.create(payload);
   }
 
@@ -65,7 +75,6 @@ export class BlogService extends BaseService {
     if (data.slug && data.slug !== blog.slug) {
       const existing = await prisma.blog.findFirst({
         where: {
-          projectId: blog.projectId,
           slug: data.slug,
           id: { not: id }
         }
@@ -95,6 +104,16 @@ export class BlogService extends BaseService {
         payload.scheduledAt = isNaN(d.getTime()) ? null : d;
       } else {
         payload.scheduledAt = null;
+      }
+    }
+
+    if (payload.targetPages !== undefined) {
+      if (Array.isArray(payload.targetPages)) {
+        payload.targetPages = JSON.stringify(payload.targetPages);
+      } else if (payload.targetPages === null) {
+        payload.targetPages = null;
+      } else if (typeof payload.targetPages === 'object') {
+        payload.targetPages = JSON.stringify(payload.targetPages);
       }
     }
 
