@@ -26,7 +26,55 @@ export class GlobalBackendClient {
   }
 
   async getGlobalSettings() {
-    return this.fetch('/global-settings');
+    return this.fetch(`/global-settings?apiKey=${encodeURIComponent(this.apiKey)}`);
+  }
+
+  async updateGlobalSettings(projectId, settings) {
+    return this.fetch('/global-settings', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, ...settings })
+    });
+  }
+
+  async getBlogs(options = {}) {
+    const params = new URLSearchParams({ apiKey: this.apiKey, ...options }).toString();
+    return this.fetch(`/blogs/public?${params}`);
+  }
+
+  async getBlogBySlug(slug) {
+    const encoded = encodeURIComponent(slug);
+    return this.fetch(`/blogs/public/${encoded}?apiKey=${encodeURIComponent(this.apiKey)}`);
+  }
+
+  async createBlog(data) {
+    return this.fetch('/blogs/public', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateBlog(id, data) {
+    return this.fetch(`/blogs/public/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteBlog(id) {
+    return this.fetch(`/blogs/public/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async getNavigation(projectId) {
+    return this.fetch(`/navigation?projectId=${encodeURIComponent(projectId)}`);
+  }
+
+  async updateNavigation(projectId, location, items) {
+    return this.fetch('/navigation', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, location, items })
+    });
   }
 
   async getPage(slug) {

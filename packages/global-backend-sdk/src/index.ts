@@ -1,4 +1,4 @@
-export { GlobalBackendSDK, GlobalBackendClient, scanRoutes, scanPagesRouter, syncRoutes } from './client.js';
+export { GlobalBackendSDK, GlobalBackendClient, scanRoutes, scanPagesRouter, syncRoutes, registerPage } from './client.js';
 export { SyncManager } from './sync-manager.js';
 export * from './types.js';
 export * from './hooks.js';

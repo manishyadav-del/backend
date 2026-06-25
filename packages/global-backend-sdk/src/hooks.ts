@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Page, Settings, RouteFeatureData, RouteFeatureModule } from './types.js';
+import { getCentralSyncManager } from './sync-manager.js';
 
 export function usePageContent(client: any, slug: string) {
   const [page, setPage] = useState<Page | null>(null);
@@ -184,7 +185,11 @@ export function useGlobalSettings(client: any) {
         } else {
           const key = client.apiKey;
           const url = `${client.backendUrl}/api/global-settings?apiKey=${encodeURIComponent(key)}`;
-          const response = await fetch(url);
+          const response = await fetch(url, {
+            headers: {
+              'x-api-key': key
+            }
+          });
           const json = await response.json();
           data = json.data || json.settings || json;
         }
@@ -384,74 +389,277 @@ export function useComponentData<T = any>(
   client: any,
   componentName: string,
   fallbackProps?: T,
-  routePath?: string
+  routePath?: string,
+  options?: { refreshInterval?: number; mode?: 'preview' | 'dashboard' | 'background' }
 ): {
   data: T | null;
   loading: boolean;
   error: string | null;
   refetch: () => void;
+  isReconnecting: boolean;
 } {
-  const [data, setData] = useState<any>(fallbackProps || null);
+  const route = routePath || (typeof window !== 'undefined' ? window.location.pathname : '/');
+
+  const fallbackPropsRef = useRef(fallbackProps);
+  fallbackPropsRef.current = fallbackProps;
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const [state, setState] = useState<{
+    data: T | null;
+    loading: boolean;
+    error: string | null;
+    isReconnecting: boolean;
+  }>(() => {
+    if (!client) {
+      return { data: fallbackProps || null, loading: false, error: null, isReconnecting: false };
+    }
+    const manager = getCentralSyncManager(client);
+    const key = `${componentName}::${route}`;
+    const cached = manager.getCache(key);
+    return {
+      data: cached ? cached.data : (fallbackProps || null),
+      loading: cached ? manager.isFetching(key) : true,
+      error: cached ? cached.error : null,
+      isReconnecting: manager.isClientReconnecting()
+    };
+  });
+
+  useEffect(() => {
+    if (!client || !componentName) return;
+
+    const manager = getCentralSyncManager(client);
+
+    const unsubscribe = manager.subscribe(
+      componentName,
+      route,
+      fallbackPropsRef.current,
+      optionsRef.current,
+      (newState) => {
+        setState(newState);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [client, componentName, route]);
+
+  const refetch = useCallback(() => {
+    if (client && componentName) {
+      const manager = getCentralSyncManager(client);
+      manager.forceFetch(componentName, route);
+    }
+  }, [client, componentName, route]);
+
+  return {
+    data: state.data,
+    loading: state.loading,
+    error: state.error,
+    isReconnecting: state.isReconnecting,
+    refetch
+  };
+}
+
+/**
+ * useNavigation — fetches navigation items from the backend for a given location.
+ * Supports real-time WebSocket updates.
+ *
+ * @param client   GlobalBackendClient instance
+ * @param location 'header' | 'footer' | string
+ *
+ * @returns { items, menus, loading, error, refetch }
+ *
+ * Example:
+ *   const { items } = useNavigation(sdk, 'header');
+ *   // items === [{ label: 'Home', href: '/', children: [] }, ...]
+ */
+export function useNavigation(client: any, location?: string) {
+  const [items, setItems] = useState<any[]>([]);
+  const [menus, setMenus] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchComponent = useCallback(async () => {
-    if (!client || !componentName) return;
-
-    const apiKey = typeof client.getApiKey === 'function' ? client.getApiKey() : client.apiKey;
-    const backendUrl = typeof client.getBackendUrl === 'function' ? client.getBackendUrl() : client.backendUrl;
-    if (!apiKey || !backendUrl) return;
-
-    const route = routePath || (typeof window !== 'undefined' ? window.location.pathname : '/');
-
+  const fetchNav = useCallback(async () => {
+    if (!client) return;
     setLoading(true);
     try {
-      const url = `${backendUrl}/api/components/data?name=${encodeURIComponent(componentName)}&route=${encodeURIComponent(route)}`;
-      const response = await fetch(url, {
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
-      });
-      const json = await response.json();
-      if (json.success && json.data) {
-        setData({ ...fallbackProps, ...json.data });
-        setError(null);
+      const result = await client.getNavigation(location);
+      if (location) {
+        // result is the items array directly
+        setItems(Array.isArray(result) ? result : []);
       } else {
-        setData(fallbackProps || null);
+        // result is array of menus
+        setMenus(Array.isArray(result) ? result : []);
       }
+      setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch component data');
-      setData(fallbackProps || null);
+      setError(err.message || 'Failed to fetch navigation');
     } finally {
       setLoading(false);
     }
-  }, [client, componentName, routePath, fallbackProps]);
+  }, [client, location]);
 
   useEffect(() => {
-    fetchComponent();
-  }, [fetchComponent]);
+    fetchNav();
+  }, [fetchNav]);
 
   useEffect(() => {
     if (!client || typeof client.on !== 'function') return;
 
-    const handleComponentUpdate = (updateData: any) => {
-      const currentRoute = routePath || (typeof window !== 'undefined' ? window.location.pathname : '/');
-      if (updateData && updateData.name === componentName && (updateData.route === currentRoute || updateData.route === '/')) {
-        console.log('[SDK useComponentData] Real-time component update applied:', updateData);
-        setData((prev: any) => ({ ...prev, ...updateData.data }));
+    const handleNavUpdate = (data: any) => {
+      if (!location || data.location === location) {
+        const updatedItems = typeof data.items === 'string'
+          ? JSON.parse(data.items)
+          : (data.items || []);
+        if (location) {
+          setItems(updatedItems);
+        } else {
+          fetchNav();
+        }
       }
     };
 
-    client.on('component:update', handleComponentUpdate);
+    client.on('navigation:update', handleNavUpdate);
     client.on('sync', (update: any) => {
-      if (update.type === 'component') handleComponentUpdate(update.data);
+      if (update.type === 'navigation') handleNavUpdate(update.data);
     });
 
     return () => {
       if (typeof client.off === 'function') {
-        client.off('component:update', handleComponentUpdate);
+        client.off('navigation:update', handleNavUpdate);
       }
     };
-  }, [client, componentName, routePath]);
+  }, [client, location, fetchNav]);
 
-  return { data, loading, error, refetch: fetchComponent };
+  return { items, menus, loading, error, refetch: fetchNav };
 }
 
+/**
+ * useBlogs — fetches blog posts from the backend with optional filtering.
+ * Supports real-time WebSocket updates.
+ *
+ * @param client  GlobalBackendClient instance
+ * @param options { page, limit, category, search, status }
+ *
+ * @returns { blogs, pagination, loading, error, refetch }
+ */
+export function useBlogs(
+  client: any,
+  options: { page?: number; limit?: number; category?: string; search?: string; status?: string } = {}
+) {
+  const [blogs, setBlogs] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const fetchBlogs = useCallback(async () => {
+    if (!client) return;
+    setLoading(true);
+    try {
+      const result = await client.getBlogs(optionsRef.current);
+      setBlogs(result.blogs || []);
+      setPagination(result.pagination || null);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch blogs');
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
+  useEffect(() => {
+    fetchBlogs();
+  }, [fetchBlogs]);
+
+  useEffect(() => {
+    if (!client || typeof client.on !== 'function') return;
+
+    const handleBlogUpdate = () => fetchBlogs();
+
+    client.on('blog:update', handleBlogUpdate);
+    client.on('blog:create', handleBlogUpdate);
+    client.on('blog:delete', handleBlogUpdate);
+    client.on('sync', (update: any) => {
+      if (update.type === 'blog') handleBlogUpdate();
+    });
+
+    return () => {
+      if (typeof client.off === 'function') {
+        client.off('blog:update', handleBlogUpdate);
+        client.off('blog:create', handleBlogUpdate);
+        client.off('blog:delete', handleBlogUpdate);
+      }
+    };
+  }, [client, fetchBlogs]);
+
+  return { blogs, pagination, loading, error, refetch: fetchBlogs };
+}
+
+/**
+ * usePages — fetches CMS pages from the backend.
+ * Supports real-time WebSocket updates.
+ *
+ * @param client  GlobalBackendClient instance
+ * @param options { status, limit, page }
+ *
+ * @returns { pages, pagination, loading, error, refetch }
+ */
+export function usePages(
+  client: any,
+  options: { status?: string; limit?: number; page?: number } = {}
+) {
+  const [pages, setPages] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const fetchPages = useCallback(async () => {
+    if (!client) return;
+    setLoading(true);
+    try {
+      const result = await client.getPages(optionsRef.current);
+      setPages(result.pages || []);
+      setPagination(result.pagination || null);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch pages');
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
+  useEffect(() => {
+    fetchPages();
+  }, [fetchPages]);
+
+  useEffect(() => {
+    if (!client || typeof client.on !== 'function') return;
+
+    const handlePageUpdate = () => fetchPages();
+
+    client.on('page:update', handlePageUpdate);
+    client.on('page:create', handlePageUpdate);
+    client.on('page:delete', handlePageUpdate);
+    client.on('sync', (update: any) => {
+      if (update.type === 'page') handlePageUpdate();
+    });
+
+    return () => {
+      if (typeof client.off === 'function') {
+        client.off('page:update', handlePageUpdate);
+        client.off('page:create', handlePageUpdate);
+        client.off('page:delete', handlePageUpdate);
+      }
+    };
+  }, [client, fetchPages]);
+
+  return { pages, pagination, loading, error, refetch: fetchPages };
+}
