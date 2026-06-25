@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function PagesListPage({ params }) {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { projectId } = params;
+  const { projectId } = React.use(params);
 
   useEffect(() => {
     fetch(`/api/pages?projectId=${projectId}`)

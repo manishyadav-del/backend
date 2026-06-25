@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function GlobalSettingsPage({ params }) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { projectId } = params;
+  const { projectId } = React.use(params);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
