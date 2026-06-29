@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Script from 'next/script';
 import { Settings, PageSection } from './types.js';
-import { useComponentData } from './hooks.js';
+import { useComponentData, useCTAs, useSubmitForm } from './hooks.js';
+
 
 const GlobalBackendContext = createContext<any>(null);
 
@@ -325,3 +326,417 @@ export function AnalyticsScripts({ settings }: { settings: Settings }) {
     </>
   );
 }
+
+/**
+ * GlobalForm — Renders a frontend lead generation form.
+ * Submits data directly to the backend database securely.
+ */
+export function GlobalForm({
+  client,
+  formType = 'contact',
+  title,
+  description,
+  fields,
+  submitText = 'Submit Now',
+  onSuccess,
+  onError,
+  className = '',
+  style = {}
+}: {
+  client: any;
+  formType?: string;
+  title?: string;
+  description?: string;
+  fields?: Array<{
+    name: string;
+    label: string;
+    type: 'text' | 'email' | 'tel' | 'textarea' | 'select' | 'checkbox';
+    required?: boolean;
+    placeholder?: string;
+    options?: string[];
+  }>;
+  submitText?: string;
+  onSuccess?: (result: any) => void;
+  onError?: (err: any) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const { submit, loading, success, error } = useSubmitForm(client);
+  const [formData, setFormData] = useState<Record<string, any>>({});
+
+  const defaultFields = [
+    { name: 'name', label: 'Full Name', type: 'text' as const, required: true, placeholder: 'Jane Doe' },
+    { name: 'email', label: 'Email Address', type: 'email' as const, required: true, placeholder: 'jane@example.com' },
+    { name: 'phone', label: 'Phone Number', type: 'tel' as const, required: false, placeholder: '+1 (555) 000-0000' },
+    { name: 'message', label: 'Message', type: 'textarea' as const, required: false, placeholder: 'How can we help you?' }
+  ];
+
+  const activeFields = fields || defaultFields;
+
+  const handleChange = (name: string, value: any) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    for (const f of activeFields) {
+      if (f.required && !formData[f.name]) {
+        alert(`${f.label} is required.`);
+        return;
+      }
+    }
+
+    try {
+      const { name, email, phone, message, ...rest } = formData;
+      const result = await submit({
+        formType,
+        name,
+        email,
+        phone,
+        message,
+        data: Object.keys(rest).length > 0 ? JSON.stringify(rest) : undefined
+      });
+      if (onSuccess) onSuccess(result);
+      setFormData({});
+    } catch (err: any) {
+      if (onError) onError(err);
+    }
+  };
+
+  return (
+    <div
+      className={`gb-form-container ${className}`}
+      style={{
+        background: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(226, 232, 240, 0.8)',
+        borderRadius: '16px',
+        padding: '2rem',
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+        width: '100%',
+        maxWidth: '500px',
+        margin: '0 auto',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        boxSizing: 'border-box',
+        ...style
+      }}
+    >
+      {title && <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: '0 0 0.5rem 0' }}>{title}</h3>}
+      {description && <p style={{ fontSize: '0.95rem', color: '#64748b', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>{description}</p>}
+
+      {success && (
+        <div style={{
+          background: '#ecfdf5',
+          border: '1px solid #10b981',
+          borderRadius: '8px',
+          color: '#065f46',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          ✓ Form submitted successfully! Thank you.
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          background: '#fef2f2',
+          border: '1px solid #ef4444',
+          borderRadius: '8px',
+          color: '#991b1b',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          fontSize: '0.9rem',
+          fontWeight: 500
+        }}>
+          ✗ {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {activeFields.map(field => {
+          const id = `gb-field-${field.name}`;
+          return (
+            <div key={field.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+              <label htmlFor={id} style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>
+                {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
+              </label>
+
+              {field.type === 'textarea' ? (
+                <textarea
+                  id={id}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  value={formData[field.name] || ''}
+                  onChange={e => handleChange(field.name, e.target.value)}
+                  style={{
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.95rem',
+                    color: '#1e293b',
+                    outline: 'none',
+                    minHeight: '100px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              ) : field.type === 'select' ? (
+                <select
+                  id={id}
+                  required={field.required}
+                  value={formData[field.name] || ''}
+                  onChange={e => handleChange(field.name, e.target.value)}
+                  style={{
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.95rem',
+                    color: '#1e293b',
+                    outline: 'none',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <option value="">Select option...</option>
+                  {(field.options || []).map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : field.type === 'checkbox' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="checkbox"
+                    id={id}
+                    required={field.required}
+                    checked={!!formData[field.name]}
+                    onChange={e => handleChange(field.name, e.target.checked)}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      accentColor: '#4f46e5'
+                    }}
+                  />
+                  <label htmlFor={id} style={{ fontSize: '0.9rem', color: '#475569', userSelect: 'none' }}>
+                    {field.placeholder || 'I agree'}
+                  </label>
+                </div>
+              ) : (
+                <input
+                  type={field.type}
+                  id={id}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  value={formData[field.name] || ''}
+                  onChange={e => handleChange(field.name, e.target.value)}
+                  style={{
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.95rem',
+                    color: '#1e293b',
+                    outline: 'none'
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            marginTop: '0.5rem',
+            padding: '0.875rem',
+            borderRadius: '8px',
+            border: 'none',
+            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            color: '#ffffff',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1)',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          {loading ? 'Submitting...' : submitText}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/**
+ * CTASection — Fetches active CTA campaigns from the backend
+ * and displays them inline, as banners, or floating cards.
+ */
+export function CTASection({
+  client,
+  type,
+  placement = 'global',
+  className = '',
+  style = {},
+  renderCta
+}: {
+  client: any;
+  type?: 'button' | 'floating' | 'banner';
+  placement?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  renderCta?: (cta: any) => React.ReactNode;
+}) {
+  const { ctas, loading, error } = useCTAs(client, type ? { type } : undefined);
+  const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
+
+  if (loading || error || !ctas || ctas.length === 0) return null;
+
+  const activeCtas = ctas.filter(cta => {
+    const matchesPlacement = !placement || cta.placement === 'global' || cta.placement === placement;
+    const matchesType = !type || cta.type === type;
+    return matchesPlacement && matchesType && !dismissed[cta.id];
+  });
+
+  if (activeCtas.length === 0) return null;
+
+  return (
+    <div className={`gb-ctas-wrapper ${className}`} style={{ ...style }}>
+      {activeCtas.map(cta => {
+        if (renderCta) {
+          return <React.Fragment key={cta.id}>{renderCta(cta)}</React.Fragment>;
+        }
+
+        const bg = cta.bgColor || 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)';
+        const textColor = cta.textColor || '#ffffff';
+
+        if (cta.type === 'banner') {
+          return (
+            <div
+              key={cta.id}
+              style={{
+                background: bg,
+                color: textColor,
+                padding: '2.5rem 2rem',
+                borderRadius: '12px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1.5rem',
+                margin: '1.5rem 0',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+              }}
+            >
+              <div style={{ flex: '1 1 300px' }}>
+                <h4 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>{cta.title}</h4>
+              </div>
+              <div>
+                <a
+                  href={cta.link || '#'}
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: '#ffffff',
+                    color: '#4f46e5',
+                    padding: '0.875rem 1.75rem',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  {cta.buttonText}
+                </a>
+              </div>
+            </div>
+          );
+        }
+
+        if (cta.type === 'floating') {
+          return (
+            <div
+              key={cta.id}
+              style={{
+                position: 'fixed',
+                bottom: '24px',
+                right: '24px',
+                width: '320px',
+                background: bg.startsWith('#') ? bg : '#ffffff',
+                backgroundImage: bg.startsWith('linear-gradient') ? bg : 'none',
+                color: textColor,
+                padding: '1.5rem',
+                borderRadius: '16px',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
+                zIndex: 9999,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}
+            >
+              <button
+                onClick={() => setDismissed(prev => ({ ...prev, [cta.id]: true }))}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: textColor,
+                  opacity: 0.7,
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold'
+                }}
+              >
+                ✕
+              </button>
+              <h4 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 1rem 0', paddingRight: '20px', lineHeight: 1.4 }}>{cta.title}</h4>
+              <a
+                href={cta.link || '#'}
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  backgroundColor: bg.startsWith('#') ? '#4f46e5' : '#ffffff',
+                  color: bg.startsWith('#') ? '#ffffff' : '#4f46e5',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  textDecoration: 'none'
+                }}
+              >
+                {cta.buttonText}
+              </a>
+            </div>
+          );
+        }
+
+        return (
+          <a
+            key={cta.id}
+            href={cta.link || '#'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: bg,
+              color: textColor,
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)',
+              fontFamily: 'system-ui, -apple-system, sans-serif'
+            }}
+          >
+            {cta.title && <span style={{ marginRight: '0.5rem' }}>{cta.title}</span>}
+            {cta.buttonText}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+

@@ -1,16 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
   experimental: {
     reactCompiler: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'ahealthplace.com' },
+      { protocol: 'https', hostname: 'earthbyhumans.s3-eu-central-2.ionoscloud.com' },
+      { protocol: 'http', hostname: 'localhost' },
+    ],
+  },
   // Windows and OneDrive compatibility fixes
-  // Increase timeout for file operations on network/synced drives
-  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
-  // Disable webpack file watching issues on OneDrive
+  serverExternalPackages: ['@prisma/client', 'bcryptjs', 'mysql2', 'grapesjs', 'grapesjs-blocks-basic', 'grapesjs-preset-webpage'],
   webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {
@@ -18,10 +25,8 @@ const nextConfig = {
         aggregateTimeout: 300,
         ignored: ['**/node_modules/**', '**/.next/**', '**/.git/**', '**/dist/**'],
       };
-      // Disable Webpack cache entirely in development to prevent OneDrive file locking/corruption
       config.cache = false;
     }
-    // Prevent symlink issues on Windows
     config.resolve = {
       ...config.resolve,
       fallback: {

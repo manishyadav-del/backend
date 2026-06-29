@@ -1,6 +1,7 @@
 import { BaseService } from './baseService.js';
 import prisma from '@/lib/prisma.js';
 import { ConflictError, NotFoundError } from '@/lib/errorLogger.js';
+import { createNotification } from '@/lib/notify.js';
 
 export class PageService extends BaseService {
   constructor() {
@@ -42,6 +43,7 @@ export class PageService extends BaseService {
   async getById(id) {
     return this.findById(id, {
       seo: true,
+      project: { select: { id: true, name: true, domain: true } },
       sections_rel: {
         where: { isDeleted: false },
         orderBy: { sortOrder: 'asc' }
@@ -90,6 +92,14 @@ export class PageService extends BaseService {
         createdBy: userId
       }
     });
+
+    await createNotification(
+      page.projectId,
+      'page',
+      'New Page Created',
+      `Page "${page.title}" has been created.`,
+      `/admin/pages/${page.id}`
+    );
 
     return page;
   }
@@ -164,15 +174,31 @@ export class PageService extends BaseService {
       });
     }
 
+    await createNotification(
+      updatedPage.projectId,
+      'page',
+      'Page Updated',
+      `Page "${updatedPage.title}" has been updated.`,
+      `/admin/pages/${updatedPage.id}`
+    );
+
     return updatedPage;
   }
 
   async softDelete(id) {
-    await this.findById(id);
-    return prisma.page.update({
+    const page = await this.findById(id);
+    const result = await prisma.page.update({
       where: { id },
       data: { status: 'ARCHIVED' }
     });
+    await createNotification(
+      page.projectId,
+      'page',
+      'Page Archived',
+      `Page "${page.title}" has been archived.`,
+      `/admin/pages`
+    );
+    return result;
   }
 
   async updateLegacy(id, data) {
@@ -226,6 +252,15 @@ export class PageService extends BaseService {
         isDynamic: page.slug.includes('[') && page.slug.includes(']'),
         createdAt: page.createdAt,
         updatedAt: page.updatedAt,
+        sections_rel: page.sections_rel || [],
+        seo: page.seo ? {
+          metaTitle: page.seo.metaTitle,
+          metaDesc: page.seo.metaDescription,
+          canonicalUrl: page.seo.canonical,
+          ogImage: page.seo.ogImage,
+          robots: page.seo.robots,
+          llmTxt: page.seo.llmTxt,
+        } : null,
       },
       seo: page.seo ? {
         metaTitle: page.seo.metaTitle,

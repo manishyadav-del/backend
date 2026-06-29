@@ -1,6 +1,7 @@
 import { BaseService } from './baseService.js';
 import prisma from '@/lib/prisma.js';
 import { ConflictError } from '@/lib/errorLogger.js';
+import { createNotification } from '@/lib/notify.js';
 
 export class BlogService extends BaseService {
   constructor() {
@@ -8,6 +9,23 @@ export class BlogService extends BaseService {
   }
 
   async getAll(projectId, queryOptions = {}) {
+    // 1. Just-in-time publishing of matured scheduled posts
+    try {
+      await prisma.blog.updateMany({
+        where: {
+          projectId,
+          status: 'scheduled',
+          scheduledAt: { lte: new Date() }
+        },
+        data: {
+          status: 'published',
+          publishedAt: new Date()
+        }
+      });
+    } catch (err) {
+      console.error('[BlogService JIT Publish Error]', err.message);
+    }
+
     const where = { projectId };
     
     if (queryOptions.status) {
@@ -31,7 +49,7 @@ export class BlogService extends BaseService {
     const { projectId, slug } = data;
     
     const existing = await prisma.blog.findFirst({
-      where: { slug }
+      where: { projectId, slug }
     });
     if (existing) {
       throw new ConflictError('Blog with this slug already exists');
@@ -66,7 +84,15 @@ export class BlogService extends BaseService {
       }
     }
 
-    return super.create(payload);
+    const blog = await super.create(payload);
+    await createNotification(
+      blog.projectId,
+      'blog',
+      'New Blog Post Created',
+      `Blog "${blog.title}" has been created.`,
+      '/admin/blogs'
+    );
+    return blog;
   }
 
   async update(id, data) {
@@ -75,6 +101,7 @@ export class BlogService extends BaseService {
     if (data.slug && data.slug !== blog.slug) {
       const existing = await prisma.blog.findFirst({
         where: {
+          projectId: blog.projectId,
           slug: data.slug,
           id: { not: id }
         }
@@ -117,7 +144,28 @@ export class BlogService extends BaseService {
       }
     }
 
-    return super.update(id, payload);
+    const updatedBlog = await super.update(id, payload);
+    await createNotification(
+      updatedBlog.projectId,
+      'blog',
+      'Blog Post Updated',
+      `Blog "${updatedBlog.title}" has been updated.`,
+      '/admin/blogs'
+    );
+    return updatedBlog;
+  }
+
+  async delete(id) {
+    const blog = await this.findById(id);
+    const result = await super.delete(id);
+    await createNotification(
+      blog.projectId,
+      'blog',
+      'Blog Post Deleted',
+      `Blog "${blog.title}" has been deleted.`,
+      '/admin/blogs'
+    );
+    return result;
   }
 
   /**

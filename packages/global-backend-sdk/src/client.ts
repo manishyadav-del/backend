@@ -90,11 +90,12 @@ export class GlobalBackendClient {
     const headers = {
       'Content-Type': 'application/json',
       'x-api-key': this.apiKey,
+      'ngrok-skip-browser-warning': 'true',
       ...options.headers,
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
     try {
       const response = await globalThis.fetch(url, {
@@ -113,7 +114,7 @@ export class GlobalBackendClient {
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error(`Request timed out after 6 seconds while calling ${url}`);
+        throw new Error(`Request timed out after 15 seconds while calling ${url}. Ensure the backend is running at ${this.apiUrl}`);
       }
       throw error;
     }
@@ -189,6 +190,19 @@ export class GlobalBackendClient {
   }
 
   /**
+   * getServices — fetch active services from the backend.
+   */
+  async getServices(options: { page?: number; limit?: number; search?: string; isVisible?: boolean } = {}): Promise<{ services: any[]; pagination?: any }> {
+    const params = new URLSearchParams();
+    if (options.page) params.set('page', String(options.page));
+    if (options.limit) params.set('limit', String(options.limit));
+    if (options.search) params.set('search', options.search);
+    if (options.isVisible !== undefined) params.set('isVisible', String(options.isVisible));
+    const data = await this.fetch(`/services/public?${params.toString()}`);
+    return { services: data.services || [], pagination: data.pagination };
+  }
+
+  /**
    * getPages — fetch CMS pages from the backend.
    */
   async getPages(options: { status?: string; limit?: number; page?: number } = {}): Promise<{ pages: any[]; pagination?: any }> {
@@ -211,6 +225,34 @@ export class GlobalBackendClient {
     if (options.projectId) params.set('projectId', options.projectId);
     const data = await this.fetch(`/media?${params.toString()}`);
     return data.media || data.items || data.files || [];
+  }
+
+  /**
+   * getCTAs — fetch active Call-To-Action campaigns from the backend.
+   */
+  async getCTAs(options: { type?: string } = {}): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (options.type) params.set('type', options.type);
+    const data = await this.fetch(`/cta?${params.toString()}`);
+    return data.ctas || [];
+  }
+
+  /**
+   * submitForm — submit a new form submission to the backend.
+   */
+  async submitForm(data: {
+    formType: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    message?: string;
+    data?: any;
+  }): Promise<any> {
+    const response = await this.fetch('/forms', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.submission || response;
   }
 
   /**

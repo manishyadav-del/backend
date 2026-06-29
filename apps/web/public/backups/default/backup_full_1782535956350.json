@@ -1,0 +1,85 @@
+{
+  "projectId": "default",
+  "timestamp": "2026-06-27T04:52:36.350Z",
+  "generatedBy": "admin@gobal.com",
+  "data": {
+    "pages": [
+      {
+        "id": "cmqt2lrom04hfuqc45tec6bj1",
+        "projectId": "default",
+        "title": "pages",
+        "slug": "/pages",
+        "path": null,
+        "status": "published",
+        "content": null,
+        "sections": null,
+        "banner": null,
+        "template": "landing",
+        "sortOrder": 0,
+        "isHome": false,
+        "draftContent": null,
+        "createdAt": "2026-06-25T05:37:24.838Z",
+        "updatedAt": "2026-06-25T07:40:32.342Z",
+        "publishedAt": "2026-06-25T07:40:32.332Z",
+        "scheduledAt": null,
+        "authorId": "cmqozo9d1004uuqboipcjle39",
+        "visibility": "public",
+        "password": null,
+        "seo": {
+          "id": "cmqt6u8pc0apuuqc4g5wunmem",
+          "pageId": "cmqt2lrom04hfuqc45tec6bj1",
+          "metaTitle": "",
+          "metaDescription": "",
+          "urlSlug": null,
+          "canonical": "",
+          "ogImage": "",
+          "robots": "index, follow",
+          "llmTxt": "",
+          "createdAt": "2026-06-25T07:35:58.608Z",
+          "updatedAt": "2026-06-25T07:40:32.342Z"
+        },
+        "sections_rel": []
+      }
+    ],
+    "services": [],
+    "blogs": [],
+    "testimonials": [],
+    "faqs": [],
+    "contacts": [
+      {
+        "id": "cmqrtsx6d006buqhg859iv3sa",
+        "projectId": "default",
+        "type": "email",
+        "label": "hello@abc.com",
+        "value": "1222",
+        "icon": "2222",
+        "sortOrder": 1,
+        "createdAt": "2026-06-24T08:43:15.829Z",
+        "updatedAt": "2026-06-24T08:43:15.829Z"
+      }
+    ],
+    "leads": [],
+    "formSubmissions": [],
+    "navigation": [],
+    "redirects": [],
+    "settings": {
+      "id": "cmqrtnzwv005zuqhg8lwdcz8m",
+      "projectId": "default",
+      "logo": null,
+      "favicon": null,
+      "brandColor": "#8e1a1a",
+      "headerSettings": null,
+      "footerSettings": "{\"columns\":[{\"title\":\"New Column\",\"links\":[{\"label\":\"gdfgd\",\"href\":\"rgvdf\"}]}],\"copyright\":\"hello\",\"socialLinks\":[],\"showNewsletter\":false}",
+      "maintenanceMode": true,
+      "defaultContact": null,
+      "analytics": null,
+      "cookieConsent": true,
+      "formConsent": true,
+      "privacyAccept": true,
+      "marketingConsent": false,
+      "createdAt": "2026-06-24T08:39:26.095Z",
+      "updatedAt": "2026-06-26T09:52:02.836Z"
+    },
+    "emailSettings": null
+  }
+}

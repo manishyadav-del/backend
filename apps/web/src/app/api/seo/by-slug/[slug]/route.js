@@ -7,7 +7,7 @@ export async function GET(request, { params }) {
     const project = await validateApiKey(request);
     if (!project) return unauthorizedResponse();
 
-    const { slug } = params;
+    const { slug } = params ? await params : {};
     const decodedSlug = decodeURIComponent(slug);
 
     const page = await prisma.page.findUnique({

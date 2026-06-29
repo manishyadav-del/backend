@@ -47,6 +47,17 @@ export function createConnector(options = {}) {
         return jsonResponse(isAppRouter, res, { success: false, error: 'Unauthorized: Invalid token verification.' }, 401);
       }
 
+      // Check for GET pull data requests
+      if (req.method === 'GET') {
+        const url = new URL(urlString);
+        const typeQuery = url.searchParams.get('type');
+        let data = [];
+        if (options.onPull) {
+          data = await options.onPull(typeQuery, Object.fromEntries(url.searchParams.entries()));
+        }
+        return jsonResponse(isAppRouter, res, { success: true, data }, 200);
+      }
+
       const url = new URL(urlString);
       const pathname = url.pathname;
       const typeQuery = url.searchParams.get('type');

@@ -174,8 +174,8 @@ model PageSection {
   page        Page     @relation(fields: [pageId], references: [id])
   type        String   // hero, about, services, features, cta, gallery, faq, testimonials, contact, custom, statistics, team
   title       String?
-  content     String   // JSON content
-  settings    String?  // JSON settings (background, padding, etc.)
+  content     String   @db.LongText // JSON content
+  settings    String?  @db.Text // JSON settings (background, padding, etc.)
   sortOrder   Int      @default(0)
   isVisible   Boolean  @default(true)
   isDeleted   Boolean  @default(false)
@@ -196,10 +196,10 @@ model PageVersion {
   version     Int
   title       String
   slug        String
-  content     String?  // JSON full page snapshot
-  sections    String?  // JSON sections snapshot
+  content     String?  @db.LongText // JSON full page snapshot
+  sections    String?  @db.LongText // JSON sections snapshot
   banner      String?
-  seo         String?  // JSON SEO snapshot
+  seo         String?  @db.Text // JSON SEO snapshot
   changeLog   String?  // description of changes
   createdBy   String?
   createdAt   DateTime @default(now())
@@ -214,10 +214,10 @@ model PageDraft {
   page        Page     @relation(fields: [pageId], references: [id])
   title       String
   slug        String
-  content     String?  // JSON draft content
-  sections    String?  // JSON draft sections
+  content     String?  @db.LongText // JSON draft content
+  sections    String?  @db.LongText // JSON draft sections
   banner      String?
-  seo         String?  // JSON draft SEO
+  seo         String?  @db.Text // JSON draft SEO
   changeLog   String?
   createdBy   String?
   createdAt   DateTime @default(now())
@@ -251,7 +251,7 @@ model Blog {
   title       String
   content     String?
   excerpt     String?
-  slug        String    @unique
+  slug        String    @db.VarChar(50)
   category    String?
   featuredImage String?
   author      String?
@@ -264,6 +264,7 @@ model Blog {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  @@unique([projectId, slug])
   @@index([projectId, createdAt])
 }
 

@@ -138,6 +138,36 @@ export function usePageContent(client: any, slug: string) {
       }
     };
 
+    // Listen for postMessage from parent Live Editor
+    const handleWindowMessage = (event: MessageEvent) => {
+      const { data } = event;
+      if (!data) return;
+
+      if (data.type === 'live-editor:sections-update' && data.sections) {
+        console.log('[SDK usePageContent] Received real-time sections update via postMessage:', data.sections);
+        setPage(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            sections_rel: data.sections
+          };
+        });
+      }
+
+      if (data.type === 'live-editor:page-update' && data.page) {
+        console.log('[SDK usePageContent] Received real-time page update via postMessage:', data.page);
+        setPage(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            ...data.page
+          };
+        });
+      }
+    };
+
+    window.addEventListener('message', handleWindowMessage);
+
     if (typeof client.on === 'function') {
       client.on('page:update', handlePageUpdate);
       client.on('route:update', handleRouteUpdate);
@@ -155,6 +185,7 @@ export function usePageContent(client: any, slug: string) {
 
     return () => {
       active = false;
+      window.removeEventListener('message', handleWindowMessage);
       if (typeof client.off === 'function') {
         client.off('page:update', handlePageUpdate);
         client.off('route:update', handleRouteUpdate);
@@ -663,3 +694,157 @@ export function usePages(
 
   return { pages, pagination, loading, error, refetch: fetchPages };
 }
+
+/**
+ * useCTAs — fetches active Call-To-Action campaigns from the backend.
+ * Supports real-time updates.
+ */
+export function useCTAs(
+  client: any,
+  options: { type?: string } = {}
+) {
+  const [ctas, setCtas] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const fetchCtas = useCallback(async () => {
+    if (!client) return;
+    setLoading(true);
+    try {
+      const result = await client.getCTAs(optionsRef.current);
+      setCtas(result || []);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch CTAs');
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
+  useEffect(() => {
+    fetchCtas();
+  }, [fetchCtas]);
+
+  useEffect(() => {
+    if (!client || typeof client.on !== 'function') return;
+
+    const handleCtaUpdate = () => fetchCtas();
+
+    client.on('cta:update', handleCtaUpdate);
+    client.on('cta:create', handleCtaUpdate);
+    client.on('cta:delete', handleCtaUpdate);
+    client.on('sync', (update: any) => {
+      if (update.type === 'cta') handleCtaUpdate();
+    });
+
+    return () => {
+      if (typeof client.off === 'function') {
+        client.off('cta:update', handleCtaUpdate);
+        client.off('cta:create', handleCtaUpdate);
+        client.off('cta:delete', handleCtaUpdate);
+      }
+    };
+  }, [client, fetchCtas]);
+
+  return { ctas, loading, error, refetch: fetchCtas };
+}
+
+/**
+ * useSubmitForm — manages form submission state (loading, success, error) and triggers API.
+ */
+export function useSubmitForm(client: any) {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [success, setSuccess] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = useCallback(async (data: {
+    formType: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    message?: string;
+    data?: any;
+  }) => {
+    if (!client) {
+      setError('SDK client not initialized');
+      return null;
+    }
+    setLoading(true);
+    setSuccess(false);
+    setError(null);
+    try {
+      const result = await client.submitForm(data);
+      setSuccess(true);
+      return result;
+    } catch (err: any) {
+      setError(err.message || 'Form submission failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
+  return { submit, loading, success, error, setSuccess, setError };
+}
+
+/**
+ * useServices — fetch active services from the backend.
+ * Supports real-time updates.
+ */
+export function useServices(
+  client: any,
+  options: { search?: string; isVisible?: boolean } = {}
+) {
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const fetchServices = useCallback(async () => {
+    if (!client) return;
+    setLoading(true);
+    try {
+      const result = await client.getServices(optionsRef.current);
+      setServices(result.services || result || []);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch services');
+    } finally {
+      setLoading(false);
+    }
+  }, [client]);
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
+
+  useEffect(() => {
+    if (!client || typeof client.on !== 'function') return;
+
+    const handleServiceUpdate = () => fetchServices();
+
+    client.on('service:update', handleServiceUpdate);
+    client.on('service:create', handleServiceUpdate);
+    client.on('service:delete', handleServiceUpdate);
+    client.on('sync', (update: any) => {
+      if (update.type === 'service') handleServiceUpdate();
+    });
+
+    return () => {
+      if (typeof client.off === 'function') {
+        client.off('service:update', handleServiceUpdate);
+        client.off('service:create', handleServiceUpdate);
+        client.off('service:delete', handleServiceUpdate);
+      }
+    };
+  }, [client, fetchServices]);
+
+  return { services, loading, error, refetch: fetchServices };
+}
+
+

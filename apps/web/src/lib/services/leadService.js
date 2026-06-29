@@ -7,7 +7,10 @@ export class LeadService extends BaseService {
   }
 
   async getAll(projectId, queryOptions = {}) {
-    const where = { projectId };
+    const where = {};
+    if (projectId && projectId !== 'all') {
+      where.projectId = projectId;
+    }
     if (queryOptions.status) {
       where.status = queryOptions.status;
     }
@@ -23,7 +26,7 @@ export class LeadService extends BaseService {
       'lead',
       'New Lead Registered',
       `Lead ${lead.name || lead.email || 'Anonymous'} has registered interest in ${lead.serviceInterest || 'general'}.`,
-      '/dashboard/leads'
+      '/admin/leads'
     );
 
     return lead;

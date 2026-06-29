@@ -118,6 +118,19 @@ export const mediaSchema = z.object({
   folder: z.string().optional(),
 });
 
+export const ctaSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  buttonText: z.string().min(1, 'Button text is required'),
+  link: z.string().optional().nullable(),
+  type: z.string().optional(),
+  placement: z.string().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().optional(),
+  bgColor: z.string().optional().nullable(),
+  textColor: z.string().optional().nullable(),
+});
+
+
 export function validateBody(schema, body) {
   try {
     const data = schema.parse(body);

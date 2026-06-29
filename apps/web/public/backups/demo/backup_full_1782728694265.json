@@ -1,0 +1,155 @@
+{
+  "projectId": "demo",
+  "timestamp": "2026-06-29T10:24:54.265Z",
+  "generatedBy": "superadmin@gobal.com",
+  "data": {
+    "pages": [],
+    "services": [
+      {
+        "id": "cmquirfp600v9uqh4efjyim5k",
+        "projectId": "demo",
+        "title": "new offers ",
+        "description": "you can post videos ",
+        "image": "/uploads/demo/1782726718455_4609.jpg",
+        "ctaText": "offers ",
+        "ctaLink": "http://localhost:3001/services",
+        "sortOrder": 1,
+        "isVisible": true,
+        "createdAt": "2026-06-26T05:57:29.274Z",
+        "updatedAt": "2026-06-29T09:52:01.980Z"
+      }
+    ],
+    "blogs": [],
+    "testimonials": [
+      {
+        "id": "cmquhg3uq00j9uqh4l2me5xtb",
+        "projectId": "demo",
+        "clientName": "manish",
+        "clientImage": "",
+        "rating": 4,
+        "content": "ok ok",
+        "isVisible": true,
+        "sortOrder": 3,
+        "createdAt": "2026-06-26T05:20:41.090Z",
+        "updatedAt": "2026-06-26T05:20:41.090Z"
+      },
+      {
+        "id": "cmqvuylll00f3uq1snptkf0bm",
+        "projectId": "demo",
+        "clientName": "Uday ",
+        "clientImage": "",
+        "rating": 5,
+        "content": "this is my website ",
+        "isVisible": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-27T04:26:45.081Z",
+        "updatedAt": "2026-06-27T04:26:45.081Z"
+      },
+      {
+        "id": "cmqvuz4yu00f9uq1srgwnc8z1",
+        "projectId": "demo",
+        "clientName": "Uday",
+        "clientImage": "",
+        "rating": 5,
+        "content": "this is my website ",
+        "isVisible": true,
+        "sortOrder": 1,
+        "createdAt": "2026-06-27T04:27:10.183Z",
+        "updatedAt": "2026-06-27T04:27:10.183Z"
+      }
+    ],
+    "faqs": [
+      {
+        "id": "cmquslz5208vcuqh4acgl4cjn",
+        "projectId": "demo",
+        "pageId": null,
+        "serviceId": "cmquirfp600v9uqh4efjyim5k",
+        "question": "why is the issues  ",
+        "answer": "dfsdf",
+        "sortOrder": 1,
+        "isVisible": true,
+        "createdAt": "2026-06-26T10:33:10.693Z",
+        "updatedAt": "2026-06-29T09:52:02.002Z"
+      },
+      {
+        "id": "cmqusmcre08veuqh4e7jin3h7",
+        "projectId": "demo",
+        "pageId": null,
+        "serviceId": null,
+        "question": "fvdc",
+        "answer": "cvdf",
+        "sortOrder": 2,
+        "isVisible": true,
+        "createdAt": "2026-06-26T10:33:28.347Z",
+        "updatedAt": "2026-06-26T10:33:28.347Z"
+      },
+      {
+        "id": "cmqyy8j6b00ifuqhso8f7r56p",
+        "projectId": "demo",
+        "pageId": null,
+        "serviceId": "cmquirfp600v9uqh4efjyim5k",
+        "question": "EFGWD",
+        "answer": "DFSD",
+        "sortOrder": 1,
+        "isVisible": true,
+        "createdAt": "2026-06-29T08:21:45.875Z",
+        "updatedAt": "2026-06-29T09:52:02.002Z"
+      },
+      {
+        "id": "cmqyy8jfw00ihuqhsomw82hx0",
+        "projectId": "demo",
+        "pageId": null,
+        "serviceId": "cmquirfp600v9uqh4efjyim5k",
+        "question": "EFGWD",
+        "answer": "DFSD",
+        "sortOrder": 1,
+        "isVisible": true,
+        "createdAt": "2026-06-29T08:21:46.221Z",
+        "updatedAt": "2026-06-29T09:52:02.002Z"
+      },
+      {
+        "id": "cmqyy8jhy00ijuqhs4v1aweni",
+        "projectId": "demo",
+        "pageId": null,
+        "serviceId": "cmquirfp600v9uqh4efjyim5k",
+        "question": "EFGWD",
+        "answer": "DFSD",
+        "sortOrder": 1,
+        "isVisible": true,
+        "createdAt": "2026-06-29T08:21:46.295Z",
+        "updatedAt": "2026-06-29T09:52:02.002Z"
+      },
+      {
+        "id": "cmqyy8urw00iluqhsmlkqu7p7",
+        "projectId": "demo",
+        "pageId": null,
+        "serviceId": null,
+        "question": "FDGBDF",
+        "answer": "DFHDF",
+        "sortOrder": 1,
+        "isVisible": true,
+        "createdAt": "2026-06-29T08:22:00.908Z",
+        "updatedAt": "2026-06-29T08:22:00.908Z"
+      }
+    ],
+    "contacts": [],
+    "leads": [],
+    "formSubmissions": [],
+    "navigation": [],
+    "redirects": [],
+    "settings": null,
+    "emailSettings": {
+      "id": "cmquhb6he00abuqh4pwqr8nmd",
+      "projectId": "demo",
+      "smtpHost": "smtp.gmail.com",
+      "smtpPort": 587,
+      "smtpUser": "manishyadav16c1@gmail.com",
+      "smtpPass": "Manishyadav242002??",
+      "formEmail": "manishnonu24@gmail.com",
+      "autoReplyTemplate": "hellos",
+      "adminAlerts": true,
+      "createdAt": "2026-06-26T05:16:51.218Z",
+      "updatedAt": "2026-06-26T09:44:57.014Z"
+    }
+  }
+}

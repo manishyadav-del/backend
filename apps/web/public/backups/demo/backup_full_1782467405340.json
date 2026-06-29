@@ -1,0 +1,58 @@
+{
+  "projectId": "demo",
+  "timestamp": "2026-06-26T09:50:05.340Z",
+  "generatedBy": "admin@gobal.com",
+  "data": {
+    "pages": [],
+    "services": [
+      {
+        "id": "cmquirfp600v9uqh4efjyim5k",
+        "projectId": "demo",
+        "title": "new offers ",
+        "description": "you can post videos ",
+        "image": "/uploads/demo/1782453423472_1103.png",
+        "ctaText": "offers ",
+        "ctaLink": "http://localhost:3001/services",
+        "sortOrder": 1,
+        "isVisible": true,
+        "createdAt": "2026-06-26T05:57:29.274Z",
+        "updatedAt": "2026-06-26T06:00:48.362Z"
+      }
+    ],
+    "blogs": [],
+    "testimonials": [
+      {
+        "id": "cmquhg3uq00j9uqh4l2me5xtb",
+        "projectId": "demo",
+        "clientName": "manish",
+        "clientImage": "",
+        "rating": 4,
+        "content": "ok ok",
+        "isVisible": true,
+        "sortOrder": 3,
+        "createdAt": "2026-06-26T05:20:41.090Z",
+        "updatedAt": "2026-06-26T05:20:41.090Z"
+      }
+    ],
+    "faqs": [],
+    "contacts": [],
+    "leads": [],
+    "formSubmissions": [],
+    "navigation": [],
+    "redirects": [],
+    "settings": null,
+    "emailSettings": {
+      "id": "cmquhb6he00abuqh4pwqr8nmd",
+      "projectId": "demo",
+      "smtpHost": "smtp.gmail.com",
+      "smtpPort": 587,
+      "smtpUser": "manishyadav16c1@gmail.com",
+      "smtpPass": "Manishyadav242002??",
+      "formEmail": "manishnonu24@gmail.com",
+      "autoReplyTemplate": "hellos",
+      "adminAlerts": true,
+      "createdAt": "2026-06-26T05:16:51.218Z",
+      "updatedAt": "2026-06-26T09:44:57.014Z"
+    }
+  }
+}

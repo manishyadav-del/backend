@@ -1,5 +1,6 @@
 import { BaseService } from './baseService.js';
 import prisma from '@/lib/prisma.js';
+import { createNotification } from '@/lib/notify.js';
 
 export class ServiceService extends BaseService {
   constructor() {
@@ -34,6 +35,14 @@ export class ServiceService extends BaseService {
       });
     }
 
+    await createNotification(
+      service.projectId,
+      'service',
+      'New Service Added',
+      `Service "${service.title}" has been added.`,
+      '/admin/services'
+    );
+
     return service;
   }
 
@@ -56,7 +65,28 @@ export class ServiceService extends BaseService {
       }
     }
 
+    await createNotification(
+      service.projectId,
+      'service',
+      'Service Updated',
+      `Service "${service.title}" has been updated.`,
+      '/admin/services'
+    );
+
     return service;
+  }
+
+  async delete(id) {
+    const service = await this.findById(id);
+    const result = await super.delete(id);
+    await createNotification(
+      service.projectId,
+      'service',
+      'Service Deleted',
+      `Service "${service.title}" has been deleted.`,
+      '/admin/services'
+    );
+    return result;
   }
 }
 

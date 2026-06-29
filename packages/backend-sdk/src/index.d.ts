@@ -52,6 +52,7 @@ export class GlobalBackendSDK extends EventEmitter {
 export interface ConnectorOptions {
   secret?: string;
   onSync?: (body: any) => Promise<void> | void;
+  onPull?: (type: string, queryParams: any) => Promise<any> | any;
   onPageUpdate?: (action: string, page: any) => Promise<void> | void;
   onRouteUpdate?: (action: string, route: any) => Promise<void> | void;
   onMediaUpdate?: (action: string, media: any) => Promise<void> | void;

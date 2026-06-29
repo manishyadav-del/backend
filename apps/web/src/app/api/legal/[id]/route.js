@@ -6,7 +6,8 @@ export const { GET, PUT, DELETE } = createApiHandler({
   GET: {
     auth: 'jwt',
     handler: async ({ params }) => {
-      const legalPage = await legalService.findById(params.id);
+      const { id } = params ? await params : {};
+      const legalPage = await legalService.findById(id);
       return { legalPage };
     }
   },
@@ -14,18 +15,20 @@ export const { GET, PUT, DELETE } = createApiHandler({
     auth: 'jwt',
     schema: legalPageSchema.partial(),
     handler: async ({ params, body }) => {
+      const { id } = params ? await params : {};
       const payload = { ...body };
       if (payload.content !== undefined) {
         payload.lastUpdated = new Date();
       }
-      const legalPage = await legalService.update(params.id, payload);
+      const legalPage = await legalService.update(id, payload);
       return { legalPage };
     }
   },
   DELETE: {
     auth: 'jwt',
     handler: async ({ params }) => {
-      await legalService.delete(params.id);
+      const { id } = params ? await params : {};
+      await legalService.delete(id);
       return { success: true };
     }
   }

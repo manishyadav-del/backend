@@ -1,4 +1,5 @@
 import { BaseService } from './baseService.js';
+import { settingsService } from './settingsService.js';
 
 export class FAQService extends BaseService {
   constructor() {
@@ -6,7 +7,8 @@ export class FAQService extends BaseService {
   }
 
   async getAll(projectId, queryOptions = {}) {
-    const where = { projectId };
+    const resolvedId = await settingsService.resolveProjectId(projectId);
+    const where = { projectId: resolvedId };
     if (queryOptions.pageId) {
       where.pageId = queryOptions.pageId;
     }

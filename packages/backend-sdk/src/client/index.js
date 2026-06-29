@@ -396,7 +396,8 @@ export class GlobalBackendSDK extends EventEmitter {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.syncToken}`
+        'Authorization': `Bearer ${this.syncToken}`,
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify(body)
     });

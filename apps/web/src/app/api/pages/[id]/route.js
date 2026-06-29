@@ -14,7 +14,8 @@ export const { GET, PUT, DELETE } = createApiHandler({
   GET: {
     auth: 'jwt',
     handler: async ({ params }) => {
-      const page = await pageService.getById(params.id);
+      const { id } = params ? await params : {};
+      const page = await pageService.getById(id);
       return { page };
     }
   },
@@ -22,14 +23,16 @@ export const { GET, PUT, DELETE } = createApiHandler({
     auth: 'jwt',
     schema: pageUpdateSchema,
     handler: async ({ params, body, user }) => {
-      const page = await pageService.update(params.id, body, user.id);
+      const { id } = params ? await params : {};
+      const page = await pageService.update(id, body, user.id);
       return { page };
     }
   },
   DELETE: {
     auth: 'jwt',
     handler: async ({ params }) => {
-      await pageService.delete(params.id);
+      const { id } = params ? await params : {};
+      await pageService.delete(id);
       return { success: true };
     }
   }

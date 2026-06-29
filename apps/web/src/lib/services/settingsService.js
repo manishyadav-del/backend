@@ -87,7 +87,11 @@ export class SettingsService extends BaseService {
   }
 
   async resolveProjectId(id) {
-    if (!id) return 'default';
+    if (!id || id === 'default') {
+      const firstProject = await prisma.project.findFirst();
+      if (firstProject) return firstProject.id;
+      return 'default';
+    }
     
     // 1. Check if ID matches a Project
     const projectExists = await prisma.project.count({ where: { id } });
@@ -99,6 +103,10 @@ export class SettingsService extends BaseService {
       const project = await prisma.project.findUnique({ where: { apiKey: website.apiKey } });
       if (project) return project.id;
     }
+
+    // 3. Fallback to the first project if the ID is invalid/not found
+    const firstProject = await prisma.project.findFirst();
+    if (firstProject) return firstProject.id;
 
     return id;
   }
@@ -229,6 +237,7 @@ export class SettingsService extends BaseService {
   }
 
   async getDashboardStats(projectId) {
+    const resolvedId = await this.resolveProjectId(projectId);
     const [
       pages,
       services,
@@ -258,16 +267,16 @@ export class SettingsService extends BaseService {
       latestSync,
       recentWebsiteLogs,
     ] = await Promise.all([
-      prisma.page.count({ where: { projectId } }),
-      prisma.service.count({ where: { projectId } }),
-      prisma.blog.count({ where: { projectId } }),
-      prisma.contact.count({ where: { projectId } }),
-      prisma.lead.count({ where: { projectId } }),
-      prisma.formSubmission.count({ where: { projectId } }),
-      prisma.testimonial.count({ where: { projectId } }),
-      prisma.fAQ.count({ where: { projectId } }),
-      prisma.teamMember.count({ where: { projectId } }),
-      prisma.notification.count({ where: { projectId } }),
+      prisma.page.count({ where: { projectId: resolvedId } }),
+      prisma.service.count({ where: { projectId: resolvedId } }),
+      prisma.blog.count({ where: { projectId: resolvedId } }),
+      prisma.contact.count({ where: { projectId: resolvedId } }),
+      prisma.lead.count({ where: { projectId: resolvedId } }),
+      prisma.formSubmission.count({ where: { projectId: resolvedId } }),
+      prisma.testimonial.count({ where: { projectId: resolvedId } }),
+      prisma.fAQ.count({ where: { projectId: resolvedId } }),
+      prisma.teamMember.count({ where: { projectId: resolvedId } }),
+      prisma.notification.count({ where: { projectId: resolvedId } }),
       
       prisma.activityLog.findMany({
         take: 10,
@@ -276,33 +285,35 @@ export class SettingsService extends BaseService {
       }),
       
       prisma.lead.findMany({
+        where: { projectId: resolvedId },
         take: 5,
         orderBy: { createdAt: 'desc' },
       }),
       
       prisma.formSubmission.findMany({
+        where: { projectId: resolvedId },
         take: 5,
         orderBy: { createdAt: 'desc' },
       }),
       
-      prisma.notification.count({ where: { projectId, isRead: false } }),
+      prisma.notification.count({ where: { projectId: resolvedId, isRead: false } }),
       
       prisma.lead.count({
         where: {
-          projectId,
+          projectId: resolvedId,
           createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
         },
       }),
       
-      prisma.page.count({ where: { projectId, status: 'published' } }),
+      prisma.page.count({ where: { projectId: resolvedId, status: 'published' } }),
       
-      prisma.page.count({ where: { projectId, status: 'draft' } }),
+      prisma.page.count({ where: { projectId: resolvedId, status: 'draft' } }),
       
-      prisma.service.count({ where: { projectId, isVisible: true } }),
+      prisma.service.count({ where: { projectId: resolvedId, isVisible: true } }),
       
-      prisma.backup.count({ where: { projectId } }),
+      prisma.backup.count({ where: { projectId: resolvedId } }),
       
-      prisma.media.count({ where: { projectId } }),
+      prisma.media.count({ where: { projectId: resolvedId } }),
       
       prisma.user.count(),
 
@@ -323,14 +334,14 @@ export class SettingsService extends BaseService {
     ]);
 
     const recentNotifications = await prisma.notification.findMany({
-      where: { projectId },
+      where: { projectId: resolvedId },
       take: 5,
       orderBy: { createdAt: 'desc' },
     });
 
     const upcomingTasks = await prisma.page.findMany({
       where: {
-        projectId,
+        projectId: resolvedId,
         scheduledAt: { not: null, gte: new Date() },
       },
       select: {
@@ -344,7 +355,7 @@ export class SettingsService extends BaseService {
     });
 
     const recentBackups = await prisma.backup.findMany({
-      where: { projectId },
+      where: { projectId: resolvedId },
       take: 3,
       orderBy: { createdAt: 'desc' },
     });

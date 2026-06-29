@@ -8,7 +8,7 @@ export async function POST(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id, versionId } = params;
+    const { id, versionId } = params ? await params : {};
     const body = await request.json();
     const { changeLog } = body;
 
@@ -100,7 +100,7 @@ export async function GET(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id, versionId } = params;
+    const { id, versionId } = params ? await params : {};
 
     const version = await prisma.pageVersion.findFirst({
       where: {
@@ -115,7 +115,7 @@ export async function GET(request, { params }) {
 
     return NextResponse.json({ version });
   } catch (error) {
-    console.error('Get version error:', error);
+    console.error('Get specific version error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

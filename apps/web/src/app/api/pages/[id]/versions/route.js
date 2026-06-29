@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = params ? await params : {};
 
     const versions = await prisma.pageVersion.findMany({
       where: { pageId: id },
@@ -29,7 +29,7 @@ export async function POST(request, { params }) {
     const user = getAuthUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = params;
+    const { id } = params ? await params : {};
     const body = await request.json();
     const { changeLog } = body;
 

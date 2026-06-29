@@ -172,6 +172,7 @@ export const backupApi = {
   create: (data) => api.create('backup', data),
   update: (id, data) => api.update('backup', id, data),
   delete: (id) => api.delete('backup', id),
+  restore: (id) => apiFetch(`/backup/${id}/restore`, { method: 'POST' }),
 };
 
 export const redirectsApi = {
@@ -190,4 +191,27 @@ export const emailSettingsApi = {
 export const settingsApi = {
   get: () => apiFetch('/api/auth/me'),
   update: (data) => apiFetch('/api/api-key', { method: 'PUT', body: JSON.stringify(data) }),
+};
+
+export const usersApi = {
+  getAll: () => api.getAll('users'),
+  getById: (id) => api.getById('users', id),
+  create: (data) => api.create('users', data),
+  update: (id, data) => api.update('users', id, data),
+  delete: (id) => api.delete('users', id),
+};
+
+export const frontendUsersApi = {
+  getAll: () => apiFetch('/users/frontend'),
+  create: (data) => apiFetch('/users/frontend', { method: 'POST', body: JSON.stringify(data) }),
+  update: (data) => apiFetch('/users/frontend', { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/users/frontend?id=${id}`, { method: 'DELETE' }),
+};
+
+export const rolesApi = {
+  getAll: () => api.getAll('roles'),
+  getById: (id) => api.getById('roles', id),
+  create: (data) => api.create('roles', data),
+  update: (id, data) => api.update('roles', id, data),
+  delete: (id) => api.delete('roles', id),
 };
