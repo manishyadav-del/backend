@@ -80,8 +80,13 @@ export default function FormsPage() {
 
   return (
     <div className="forms-page">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1>Form Submissions</h1>
+        <div>
+          <a href={`/api/forms/export?projectId=${projectId}`} className="btn-primary" download style={{ textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>
+            Export CSV
+          </a>
+        </div>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}

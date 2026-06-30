@@ -18,7 +18,7 @@ export const { GET, POST } = createApiHandler({
       const pagination = Array.isArray(result) ? null : result.pagination;
       return { 
         pages,
-        ...(pagination && { pagination })
+        ...(pagination && { pagination }) 
       };
     }
   },

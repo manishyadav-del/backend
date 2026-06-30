@@ -18,6 +18,11 @@ export class GlobalBackendSDK extends BaseSDK {
   override async initialize() {
     await super.initialize();
     
+    if ((this as any).isOffline) {
+      console.warn('[GlobalBackendSDK] Page registry sync skipped: SDK is offline.');
+      return;
+    }
+    
     // Sync registered pages to global backend
     if (globalPageRegistry.length > 0) {
       try {

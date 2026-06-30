@@ -18,6 +18,35 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  const [notifications, setNotifications] = useState([]);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [hoverNotificationsOpen, setHoverNotificationsOpen] = useState(false);
+  const [hoverActivityOpen, setHoverActivityOpen] = useState(false);
+
+  const handleNotificationsHover = () => {
+    setHoverNotificationsOpen(true);
+    fetch('/api/notifications?projectId=demo')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.notifications) {
+          setNotifications(data.notifications.slice(0, 5));
+        }
+      })
+      .catch((err) => console.error(err));
+  };
+
+  const handleActivityHover = () => {
+    setHoverActivityOpen(true);
+    fetch('/api/activity-logs?limit=5')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.logs) {
+          setActivityLogs(data.logs.slice(0, 5));
+        }
+      })
+      .catch((err) => console.error(err));
+  };
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setTheme(savedTheme);
@@ -238,18 +267,112 @@ export default function DashboardLayout({ children }) {
                 )}
               </button>
 
-              <Link href="/admin/notifications" className="topbar-btn" title="Notifications" aria-label="Notifications">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-                {unreadCount > 0 && <span className="dot" />}
-              </Link>
-              <Link href="/admin/activity" className="topbar-btn" title="Activity" aria-label="Activity">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-              </Link>
+              <div 
+                className="relative-container" 
+                style={{ position: 'relative', display: 'inline-block' }}
+                onMouseEnter={handleNotificationsHover}
+                onMouseLeave={() => setHoverNotificationsOpen(false)}
+              >
+                <Link href="/admin/notifications" className="topbar-btn" title="Notifications" aria-label="Notifications">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                  {unreadCount > 0 && <span className="dot" />}
+                </Link>
+                {hoverNotificationsOpen && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: '100%',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-strong)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
+                      minWidth: '290px',
+                      maxWidth: '320px',
+                      padding: '0.75rem',
+                      zIndex: 1000,
+                      animation: 'slideDown 0.15s ease-out'
+                    }}
+                  >
+                    <div style={{ fontWeight: 'bold', fontSize: '0.875rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', color: 'var(--text-h1)' }}>
+                      <span>🔔 Recent Notifications</span>
+                      {unreadCount > 0 && <span style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>{unreadCount} unread</span>}
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', padding: '0.5rem 0', textAlign: 'center' }}>No recent notifications</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+                        {notifications.map(notif => (
+                          <div key={notif.id} style={{ padding: '0.35rem 0.5rem', borderRadius: 'var(--radius-sm)', background: notif.isRead ? 'transparent' : 'rgba(13, 148, 136, 0.08)', borderLeft: notif.isRead ? 'none' : '3px solid var(--accent)' }}>
+                            <div style={{ fontWeight: notif.isRead ? 'normal' : 'bold', fontSize: '0.8rem', color: 'var(--text-primary)' }}>{notif.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>{notif.message}</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <Link href="/admin/notifications" style={{ display: 'block', textAlign: 'center', fontSize: '0.75rem', color: 'var(--accent)', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-light)' }}>
+                      View all notifications
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              <div 
+                className="relative-container" 
+                style={{ position: 'relative', display: 'inline-block' }}
+                onMouseEnter={handleActivityHover}
+                onMouseLeave={() => setHoverActivityOpen(false)}
+              >
+                <Link href="/admin/activity" className="topbar-btn" title="Activity" aria-label="Activity">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </Link>
+                {hoverActivityOpen && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: '100%',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-strong)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
+                      minWidth: '290px',
+                      maxWidth: '320px',
+                      padding: '0.75rem',
+                      zIndex: 1000,
+                      animation: 'slideDown 0.15s ease-out'
+                    }}
+                  >
+                    <div style={{ fontWeight: 'bold', fontSize: '0.875rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '0.5rem', color: 'var(--text-h1)' }}>
+                      ⚡ Recent Activity
+                    </div>
+                    {activityLogs.length === 0 ? (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', padding: '0.5rem 0', textAlign: 'center' }}>No recent activity</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+                        {activityLogs.map(log => (
+                          <div key={log.id} style={{ padding: '0.35rem 0.5rem', borderRadius: 'var(--radius-sm)' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                              <span style={{ fontWeight: 'bold' }}>{log.user?.name || log.user?.email || 'User'}</span> {log.action}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>{log.details || ''}</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <Link href="/admin/activity" style={{ display: 'block', textAlign: 'center', fontSize: '0.75rem', color: 'var(--accent)', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-light)' }}>
+                      View all activity
+                    </Link>
+                  </div>
+                )}
+              </div>
               <div style={{ position: 'relative' }}>
                 <button 
                   onClick={() => setDropdownOpen(!dropdownOpen)} 

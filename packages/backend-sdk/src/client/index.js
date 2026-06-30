@@ -115,9 +115,10 @@ export class GlobalBackendSDK extends EventEmitter {
       this.emit('ready');
       this.log('SDK initialized successfully.');
     } catch (error) {
-      this.log('Initialization failed:', error.message);
+      this.isOffline = true;
+      this.initialized = true;
+      console.warn(`[GlobalBackendSDK WARNING] Initialization failed: ${error.message}. Entering degraded offline mode.`);
       this.emit('error', error);
-      throw error;
     }
   }
 

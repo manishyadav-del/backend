@@ -699,22 +699,27 @@ export default function HomePage() {
             <p>Pages and in-depth guides from our platform</p>
           </div>
           <div className="home-articles-grid">
-            {homepageContent.recentArticles.map((article) => (
-              <Link key={article.id} href={`/${article.slug}`} className="home-article-card">
-                {article.banner && (
-                  <div className="home-article-img-wrap">
-                    <img src={article.banner} alt={article.title} className="home-article-img" />
-                  </div>
-                )}
-                <div className="home-article-body">
-                  <h3 className="home-article-title">{article.title}</h3>
-                  {article.excerpt && (
-                    <p className="home-article-excerpt">{article.excerpt}</p>
-                  )}
-                  <span className="home-article-read">Read article →</span>
-                </div>
-              </Link>
-            ))}
+            {homepageContent.recentArticles
+              .filter((article) => article.slug && !article.slug.includes('[') && !article.slug.includes(']'))
+              .map((article) => {
+                const articleUrl = article.slug.startsWith('/') ? article.slug : `/${article.slug}`;
+                return (
+                  <Link key={article.id} href={articleUrl} className="home-article-card">
+                    {article.banner && (
+                      <div className="home-article-img-wrap">
+                        <img src={article.banner} alt={article.title} className="home-article-img" />
+                      </div>
+                    )}
+                    <div className="home-article-body">
+                      <h3 className="home-article-title">{article.title}</h3>
+                      {article.excerpt && (
+                        <p className="home-article-excerpt">{article.excerpt}</p>
+                      )}
+                      <span className="home-article-read">Read article →</span>
+                    </div>
+                  </Link>
+                );
+              })}
           </div>
         </section>
       )}

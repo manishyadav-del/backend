@@ -150,11 +150,18 @@ export default function BlogDetailPage({ params: paramsPromise }) {
   const announcementBarActive = headerSettings?.announcementBarActive ?? false;
   const announcementBarText = headerSettings?.announcementBarText || '';
 
+  const filterNavLinks = (links) => {
+    return (links || []).filter(item => {
+      const p = item.path || item.href || '';
+      return !p.includes('[') && !p.includes(']');
+    });
+  };
+
   let displayLinks = [];
   if (navigationMenu && navigationMenu.length > 0) {
-    displayLinks = navigationMenu;
+    displayLinks = filterNavLinks(navigationMenu);
   } else if (headerSettings?.navLinks && headerSettings.navLinks.length > 0) {
-    displayLinks = headerSettings.navLinks;
+    displayLinks = filterNavLinks(headerSettings.navLinks);
   } else {
     displayLinks = [
       { label: 'Home', path: '/' }
