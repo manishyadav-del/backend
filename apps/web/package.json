@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node -e \"try { require('fs').rmSync('.next', { recursive: true, force: true }); } catch (e) {}\" && next dev --turbo --hostname 0.0.0.0",
+    "dev": "node -e \"try { require('fs').rmSync('.next', { recursive: true, force: true }); } catch (e) {}\" && next dev --hostname 0.0.0.0",
     "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
@@ -16,6 +16,10 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
     "@craftjs/core": "^0.2.12",
+    "@editorjs/editorjs": "^2.31.6",
+    "@editorjs/header": "^2.8.9",
+    "@editorjs/list": "^2.0.9",
+    "@editorjs/quote": "^2.7.6",
     "@global/global-backend-next": "*",
     "@prisma/client": "^6.19.3",
     "@reduxjs/toolkit": "^2.12.0",

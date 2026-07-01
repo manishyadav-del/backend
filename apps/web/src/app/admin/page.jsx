@@ -149,7 +149,7 @@ export default function DashboardOverview() {
 
   const { stats, recentActivity, notifications, recentLeads, recentSubmissions, upcomingTasks, systemStatus, profileCompletion } = data;
 
-  // Prepare KPI cards
+  // Prepare KPI cards (exclusively CMS & website management)
   const kpiCards = [
     {
       label: 'Total Pages',
@@ -160,12 +160,12 @@ export default function DashboardOverview() {
       href: '/admin/pages',
     },
     {
-      label: 'Total Leads',
-      value: stats.leads || 0,
-      icon: '💼',
-      sub: `${stats.newLeads || 0} new this week`,
+      label: 'Blog Posts',
+      value: stats.blogs || 0,
+      icon: '📝',
+      sub: `${stats.media || 0} media assets in library`,
       color: 'emerald',
-      href: '/admin/leads',
+      href: '/admin/blogs',
     },
     {
       label: 'Services',
@@ -183,13 +183,6 @@ export default function DashboardOverview() {
       color: 'indigo',
       href: '/admin/websites',
     },
-    {
-      label: 'Blog Posts',
-      value: stats.blogs || 0,
-      icon: '📝',
-      sub: `${stats.media || 0} media files`,
-      href: '/admin/blog',
-    },
   ];
 
   return (
@@ -197,9 +190,9 @@ export default function DashboardOverview() {
       {/* Page Header */}
       <div className="page-header-modern" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="page-title" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-h1)', margin: 0 }}>Overview Dashboard</h1>
+          <h1 className="page-title" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-h1)', margin: 0 }}>CMS & Content Management Overview</h1>
           <p className="page-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0.25rem 0 0' }}>
-            Overview of registry states, lead submissions, and application sync statuses.
+            Overview of websites, route indexing, blogs, page states, and sync integrations.
           </p>
         </div>
         <div className="page-actions">
@@ -211,7 +204,7 @@ export default function DashboardOverview() {
 
       {/* KPI Cards Row (Grid of 4) */}
       <div className="dashboard-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-        {kpiCards.slice(0, 4).map((kpi) => (
+        {kpiCards.map((kpi) => (
           <Link href={kpi.href} key={kpi.label} className="stat-card-modern" style={{ textDecoration: 'none', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1.25rem', transition: 'var(--transition)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{kpi.label}</span>
@@ -232,7 +225,7 @@ export default function DashboardOverview() {
           {/* Widget 1: Analytics Metrics */}
           <div className="chart-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
             <div style={{ marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-h1)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>📊 Analytics Overview</h3>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-h1)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>📊 CMS Assets Metrics</h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.15rem 0 0' }}>Key database counts at a glance</p>
             </div>
             <div className="analytics-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
@@ -244,10 +237,10 @@ export default function DashboardOverview() {
                 </div>
               </div>
               <div className="analytics-metric" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
-                <span style={{ fontSize: '1.25rem' }}>💼</span>
+                <span style={{ fontSize: '1.25rem' }}>📝</span>
                 <div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-h1)' }}>{stats.leads}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Leads</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-h1)' }}>{stats.blogs}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Blogs</div>
                 </div>
               </div>
               <div className="analytics-metric" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
@@ -260,99 +253,43 @@ export default function DashboardOverview() {
             </div>
           </div>
 
-          {/* Widget 2: Tabbed Leads & Form Submissions */}
+          {/* Widget 2: Recent Sync Logs */}
           <div className="submissions-table" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1.25rem', margin: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button 
-                  type="button" 
-                  onClick={() => setActiveLeadTab('leads')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: activeLeadTab === 'leads' ? 'var(--primary)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    borderBottom: activeLeadTab === 'leads' ? '2px solid var(--primary)' : '2px solid transparent',
-                    paddingBottom: '0.4rem'
-                  }}
-                >
-                  💼 Client Leads
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setActiveLeadTab('submissions')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: activeLeadTab === 'submissions' ? 'var(--primary)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    borderBottom: activeLeadTab === 'submissions' ? '2px solid var(--primary)' : '2px solid transparent',
-                    paddingBottom: '0.4rem'
-                  }}
-                >
-                  📋 Form Submissions
-                </button>
-              </div>
-              <Link href={activeLeadTab === 'leads' ? "/admin/leads" : "/admin/contacts"} style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 'bold' }}>
-                View all &rarr;
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 800, margin: 0 }}>🌐 Connected Websites</h3>
+              <Link href="/admin/websites" style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 'bold' }}>
+                Manage Sites &rarr;
               </Link>
             </div>
             
             <div className="submissions-table-wrapper" style={{ overflowX: 'auto' }}>
-              {activeLeadTab === 'leads' ? (
-                recentLeads && recentLeads.length > 0 ? (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                        <th style={{ padding: '0.5rem 0' }}>Name</th>
-                        <th style={{ padding: '0.5rem 0' }}>Email</th>
-                        <th style={{ padding: '0.5rem 0' }}>Service</th>
-                        <th style={{ padding: '0.5rem 0' }}>Date</th>
+              {connectedWebsites && connectedWebsites.length > 0 ? (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '0.5rem 0' }}>Site Name</th>
+                      <th style={{ padding: '0.5rem 0' }}>Domain</th>
+                      <th style={{ padding: '0.5rem 0' }}>Framework</th>
+                      <th style={{ padding: '0.5rem 0' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {connectedWebsites.slice(0, 5).map((site) => (
+                      <tr key={site.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                        <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>{site.name}</td>
+                        <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{site.domain}</td>
+                        <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{site.framework}</td>
+                        <td style={{ padding: '0.75rem 0' }}>
+                          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', borderRadius: '4px', background: site.status === 'connected' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: site.status === 'connected' ? 'var(--success)' : 'var(--danger)', fontWeight: 'bold' }}>
+                            {site.status === 'connected' ? 'ACTIVE' : 'OFFLINE'}
+                          </span>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {recentLeads.slice(0, 4).map((lead) => (
-                        <tr key={lead.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                          <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>{lead.name}</td>
-                          <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{lead.email}</td>
-                          <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{lead.service}</td>
-                          <td style={{ padding: '0.75rem 0', color: 'var(--text-muted)' }}>{lead.date}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No leads captured yet.</div>
-                )
+                    ))}
+                  </tbody>
+                </table>
               ) : (
-                recentSubmissions && recentSubmissions.length > 0 ? (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                        <th style={{ padding: '0.5rem 0' }}>Name</th>
-                        <th style={{ padding: '0.5rem 0' }}>Email</th>
-                        <th style={{ padding: '0.5rem 0' }}>Type</th>
-                        <th style={{ padding: '0.5rem 0' }}>Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentSubmissions.slice(0, 4).map((submission) => (
-                        <tr key={submission.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                          <td style={{ padding: '0.75rem 0', fontWeight: 'bold' }}>{submission.name}</td>
-                          <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{submission.email}</td>
-                          <td style={{ padding: '0.75rem 0', color: 'var(--text-secondary)' }}>{submission.type}</td>
-                          <td style={{ padding: '0.75rem 0', color: 'var(--text-muted)' }}>{submission.date}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No contact forms captured yet.</div>
-                )
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No connected websites found.</div>
               )}
             </div>
           </div>

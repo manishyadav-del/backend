@@ -182,49 +182,88 @@ export function DynamicRenderer({
 
         const Component = components[section.type];
 
-        let parsedContent = {};
+        let parsedContent: any = {};
         try {
           parsedContent = typeof section.content === 'string' ? JSON.parse(section.content) : section.content || {};
         } catch (e) {
           parsedContent = section.content || {};
         }
 
-        let parsedSettings = {};
+        const parsedSettings: any = {};
         try {
-          parsedSettings = typeof section.settings === 'string' ? JSON.parse(section.settings) : section.settings || {};
+          const s = typeof section.settings === 'string' ? JSON.parse(section.settings) : section.settings || {};
+          Object.assign(parsedSettings, s);
         } catch (e) {
-          parsedSettings = section.settings || {};
+          Object.assign(parsedSettings, section.settings || {});
         }
+
+        if (section.type === 'spacer') {
+          const height = parsedContent.height || 50;
+          return (
+            <div key={section.id || idx} style={{ height: `${height}px` }} />
+          );
+        }
+
+        if (section.type === 'divider') {
+          const thickness = parsedContent.thickness || 1;
+          const style = parsedContent.style || 'solid';
+          const color = parsedContent.color || '#e2e8f0';
+          const width = parsedContent.width || '100%';
+          return (
+            <div key={section.id || idx} style={{ padding: '20px 0', display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <hr style={{
+                border: 'none',
+                borderTop: `${thickness}px ${style} ${color}`,
+                width,
+                margin: 0
+              }} />
+            </div>
+          );
+        }
+
+        const wrapperStyle: React.CSSProperties = {
+          backgroundColor: parsedSettings.backgroundColor || undefined,
+          paddingTop: parsedSettings.paddingTop != null ? `${parsedSettings.paddingTop}px` : undefined,
+          paddingBottom: parsedSettings.paddingBottom != null ? `${parsedSettings.paddingBottom}px` : undefined,
+          marginTop: parsedSettings.marginTop != null ? `${parsedSettings.marginTop}px` : undefined,
+          marginBottom: parsedSettings.marginBottom != null ? `${parsedSettings.marginBottom}px` : undefined,
+          borderColor: parsedSettings.borderWidth ? parsedSettings.borderColor || '#e2e8f0' : undefined,
+          borderStyle: parsedSettings.borderWidth ? 'solid' : undefined,
+          borderWidth: parsedSettings.borderWidth != null ? `${parsedSettings.borderWidth}px` : undefined,
+          borderRadius: parsedSettings.borderRadius != null ? `${parsedSettings.borderRadius}px` : undefined,
+        };
 
         if (Component) {
           return (
-            <Component
-              key={section.id || idx}
-              content={parsedContent}
-              settings={parsedSettings}
-              title={section.title}
-              id={section.id}
-            />
+            <div key={section.id || idx} style={wrapperStyle}>
+              <Component
+                content={parsedContent}
+                settings={parsedSettings}
+                title={section.title}
+                id={section.id}
+              />
+            </div>
           );
         }
 
         // Generic fallback section
         return (
-          <section
-            key={section.id || idx}
-            data-gb-section={section.type}
-            style={{
-              padding: (parsedSettings as any).padding || '4rem 2rem',
-              background: (parsedSettings as any).background || 'transparent',
-              color: (parsedSettings as any).textColor || 'inherit',
-            }}
-          >
-            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              {section.title && <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>{section.title}</h2>}
-              {(parsedContent as any).subtitle && <p style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>{(parsedContent as any).subtitle}</p>}
-              {(parsedContent as any).text && <p style={{ fontSize: '1rem', lineHeight: '1.6' }}>{(parsedContent as any).text}</p>}
-            </div>
-          </section>
+          <div key={section.id || idx} style={wrapperStyle}>
+            <section
+              data-gb-section={section.type}
+              style={{
+                padding: parsedSettings.padding || '4rem 2rem',
+                background: parsedSettings.background || 'transparent',
+                color: parsedSettings.textColor || 'inherit',
+              }}
+            >
+              <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                {section.title && <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>{section.title}</h2>}
+                {(parsedContent as any).subtitle && <p style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>{(parsedContent as any).subtitle}</p>}
+                {(parsedContent as any).text && <p style={{ fontSize: '1rem', lineHeight: '1.6' }}>{(parsedContent as any).text}</p>}
+              </div>
+            </section>
+          </div>
         );
       })}
     </div>

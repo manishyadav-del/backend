@@ -253,6 +253,7 @@ export async function middleware(request) {
   if (pathname.startsWith('/api/')) {
     const publicPaths = [
       '/api/auth/login',
+      '/api/auth/register',
       '/api/auth/forgot-password',
       '/api/auth/reset-password',
       '/api/auth/verify-2fa',
@@ -269,6 +270,7 @@ export async function middleware(request) {
       '/api/redirects/public',
       '/api/navigation/public',
       '/api/faqs/public',
+      '/api/comments',
     ];
 
     const publicReadPaths = [
@@ -320,7 +322,25 @@ export async function middleware(request) {
     }
   }
 
-  // 5. Protect dashboard and admin pages under /admin namespace
+  // 5. Redirect /dashboard or /crm to their admin locations
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    if (!token) {
+      const loginUrl = new URL('/admin/login', request.url);
+      loginUrl.searchParams.set('redirect', '/admin/dashboard');
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+  }
+
+  if (pathname === '/crm' || pathname.startsWith('/crm/')) {
+    if (!token) {
+      const loginUrl = new URL('/admin/login', request.url);
+      loginUrl.searchParams.set('redirect', '/admin/crm');
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.redirect(new URL('/admin/crm', request.url));
+  }
+
   if (pathname === '/home') {
     return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }

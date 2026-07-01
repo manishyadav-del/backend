@@ -70,32 +70,6 @@ const Icons = {
       <polyline points="21 15 16 10 5 21" />
     </svg>
   ),
-  marketing: (
-    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
-  ),
-  forms: (
-    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  ),
-  contacts: (
-    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-    </svg>
-  ),
-  email: (
-    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-      <polyline points="22,6 12,13 2,6" />
-    </svg>
-  ),
   analytics: (
     <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
       <line x1="18" y1="20" x2="18" y2="10" />
@@ -107,12 +81,6 @@ const Icons = {
     <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
       <circle cx="12" cy="12" r="3" />
-    </svg>
-  ),
-  leads: (
-    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
     </svg>
   ),
   builder: (
@@ -211,13 +179,8 @@ const IconColorMap = {
   services: { bg: 'linear-gradient(135deg, #10b981 0%, #047857 100%)', shadow: 'rgba(16, 185, 129, 0.3)' },
   blog: { bg: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)', shadow: 'rgba(245, 158, 11, 0.3)' },
   media: { bg: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', shadow: 'rgba(236, 72, 153, 0.3)' },
-  marketing: { bg: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', shadow: 'rgba(139, 92, 246, 0.3)' },
-  forms: { bg: 'linear-gradient(135deg, #06b6d4 0%, #0369a1 100%)', shadow: 'rgba(6, 182, 212, 0.3)' },
-  contacts: { bg: 'linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)', shadow: 'rgba(20, 184, 166, 0.3)' },
-  email: { bg: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', shadow: 'rgba(99, 102, 241, 0.3)' },
   analytics: { bg: 'linear-gradient(135deg, #f43f5e 0%, #be123c 100%)', shadow: 'rgba(244, 63, 94, 0.3)' },
   live: { bg: 'linear-gradient(135deg, #10b981 0%, #064e3b 100%)', shadow: 'rgba(16, 185, 129, 0.3)' },
-  leads: { bg: 'linear-gradient(135deg, #8b5cf6 0%, #4c1d95 100%)', shadow: 'rgba(139, 92, 246, 0.3)' },
   builder: { bg: 'linear-gradient(135deg, #f59e0b 0%, #78350f 100%)', shadow: 'rgba(245, 158, 11, 0.3)' },
   navigation: { bg: 'linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%)', shadow: 'rgba(59, 130, 246, 0.3)' },
   redirects: { bg: 'linear-gradient(135deg, #ec4899 0%, #831843 100%)', shadow: 'rgba(236, 72, 153, 0.3)' },
@@ -232,14 +195,10 @@ const IconColorMap = {
   legal: { bg: 'linear-gradient(135deg, #ec4899 0%, #9d174d 100%)', shadow: 'rgba(236, 72, 153, 0.3)' }
 };
 
-// Role hierarchy — higher index = more access
 const ROLE_PRIORITY = ['viewer', 'content_writer', 'editor', 'manager', 'admin', 'super_admin'];
 
-// Derive effective role from user.role string + user.roles[] array
 function getEffectiveRole(userRole, userRoles = []) {
-  // Combine direct role + any assigned roles
   const allRoles = [userRole, ...userRoles].filter(Boolean).map(r => r.toLowerCase());
-  // Return highest-priority role found
   let best = 'viewer';
   for (const r of allRoles) {
     if (ROLE_PRIORITY.indexOf(r) > ROLE_PRIORITY.indexOf(best)) {
@@ -249,16 +208,12 @@ function getEffectiveRole(userRole, userRoles = []) {
   return best;
 }
 
-// Check if an item is allowed for the given effective role
 function isAllowedForRole(item, effectiveRole) {
-  // Admins and super_admins always see everything
   if (effectiveRole === 'super_admin' || effectiveRole === 'admin') return true;
-  // If item has no roles restriction, always show
   if (!item.roles || item.roles.length === 0) return true;
   return item.roles.includes(effectiveRole);
 }
 
-// Role badge config
 const ROLE_BADGE = {
   super_admin:    { label: 'Super Admin', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
   admin:          { label: 'Admin',       color: '#6366f1', bg: 'rgba(99,102,241,0.12)' },
@@ -268,15 +223,14 @@ const ROLE_BADGE = {
   viewer:         { label: 'Viewer',      color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
 };
 
-// Full menu definition — roles[] = which roles can see this item (empty/absent = everyone)
-// super_admin and admin ALWAYS see everything regardless of roles[]
+// Exclusively CMS Menu Groups (No CRM/Marketing menu items)
 const allMenuGroups = [
   {
     id: 'dashboard',
     label: 'Dashboard',
     iconKey: 'dashboard',
     items: [
-      { label: 'Dashboard',      href: '/admin/dashboard',          iconKey: 'dashboard',  permission: null,             roles: [] },
+      { label: 'Overview',      href: '/admin/dashboard',          iconKey: 'dashboard',  permission: null,             roles: [] },
       { label: 'Websites',       href: '/admin/websites',       iconKey: 'websites',   permission: null,             roles: ['admin', 'super_admin', 'manager'] },
       { label: 'Routes',         href: '/admin/routes',         iconKey: 'routes',     permission: null,             roles: ['admin', 'super_admin', 'manager'] },
       { label: 'Content Blocks', href: '/admin/content-manager',iconKey: 'content',    permission: null,             roles: ['admin', 'super_admin', 'manager', 'editor', 'content_writer'] },
@@ -292,18 +246,10 @@ const allMenuGroups = [
       { label: 'Pages',    href: '/admin/pages',    iconKey: 'pages',    permission: 'pages.view',    roles: ['admin', 'super_admin', 'manager', 'editor', 'content_writer'] },
       { label: 'Services', href: '/admin/services', iconKey: 'services', permission: 'services.view', roles: ['admin', 'super_admin', 'manager', 'editor'] },
       { label: 'Blog',     href: '/admin/blogs',     iconKey: 'blog',     permission: 'blog.view',     roles: ['admin', 'super_admin', 'manager', 'editor', 'content_writer'] },
+      { label: 'Categories', href: '/admin/categories', iconKey: 'routes', permission: 'blog.view',   roles: ['admin', 'super_admin', 'manager', 'editor', 'content_writer'] },
+      { label: 'Tags',     href: '/admin/tags',     iconKey: 'seo',      permission: 'blog.view',   roles: ['admin', 'super_admin', 'manager', 'editor', 'content_writer'] },
+      { label: 'Comments', href: '/admin/comments', iconKey: 'reputation', permission: 'blog.view',  roles: ['admin', 'super_admin', 'manager', 'editor'] },
       { label: 'Media',    href: '/admin/media',    iconKey: 'media',    permission: 'media.view',    roles: ['admin', 'super_admin', 'manager', 'editor', 'content_writer'] },
-    ],
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing & Leads',
-    iconKey: 'marketing',
-    items: [
-      { label: 'CTA / Leads',    href: '/admin/cta',       iconKey: 'marketing', permission: 'leads.view',    roles: ['admin', 'super_admin', 'manager'] },
-      { label: 'Forms',          href: '/admin/forms',     iconKey: 'forms',     permission: 'forms.view',    roles: ['admin', 'super_admin', 'manager'] },
-      { label: 'Contacts',       href: '/admin/contacts',  iconKey: 'contacts',  permission: 'contacts.view', roles: ['admin', 'super_admin', 'manager'] },
-      { label: 'Email Settings', href: '/admin/email',     iconKey: 'email',     permission: 'settings.view', roles: ['admin', 'super_admin'] },
     ],
   },
   {
@@ -313,7 +259,6 @@ const allMenuGroups = [
     items: [
       { label: 'Analytics',     href: '/admin/analytics', iconKey: 'analytics', permission: 'analytics.view', roles: ['admin', 'super_admin', 'manager'] },
       { label: 'Live Visitors', href: '/admin/live',      iconKey: 'live',      permission: 'analytics.view', roles: ['admin', 'super_admin', 'manager'] },
-      { label: 'Leads',         href: '/admin/leads',     iconKey: 'leads',     permission: 'leads.view',     roles: ['admin', 'super_admin', 'manager'] },
     ],
   },
   {
@@ -388,7 +333,7 @@ const allMenuGroups = [
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileToggle }) {
   const pathname = usePathname();
   const [expandedGroups, setExpandedGroups] = useState({});
-  const [userPermissions, setUserPermissions] = useState(null); // null = loading
+  const [userPermissions, setUserPermissions] = useState(null);
   const [userRole, setUserRole] = useState('viewer');
   const [userName, setUserName] = useState('');
   const [effectiveRole, setEffectiveRole] = useState('viewer');
@@ -411,15 +356,11 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileToggl
       });
   }, []);
 
-  // Filter menu groups based on BOTH role-based visibility AND granular permissions
   const menuGroups = (userPermissions === null ? [] : allMenuGroups)
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
-        // Role-based gate: super_admin/admin bypass; others must be in item.roles
         const roleAllowed = isAllowedForRole(item, effectiveRole);
-        // Granular permission gate: if item has a permission string, user must have it
-        // (admins skip this check since they always have all permissions)
         const permAllowed = !item.permission
           || effectiveRole === 'super_admin'
           || effectiveRole === 'admin'
@@ -555,7 +496,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileToggl
         )}
       </nav>
 
-      {/* User Role Badge — pinned at sidebar bottom */}
+      {/* User Role Badge */}
       <div style={{
         padding: collapsed ? '0.75rem 0' : '0.85rem 1rem',
         borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -565,7 +506,6 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileToggl
         justifyContent: collapsed ? 'center' : 'flex-start',
         marginTop: 'auto',
       }}>
-        {/* Avatar circle */}
         <div style={{
           width: '30px',
           height: '30px',

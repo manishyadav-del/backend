@@ -1,0 +1,44 @@
+{
+  "projectId": "demo",
+  "timestamp": "2026-06-26T05:22:56.123Z",
+  "generatedBy": "admin@gobal.com",
+  "data": {
+    "pages": [],
+    "services": [],
+    "blogs": [],
+    "testimonials": [
+      {
+        "id": "cmquhg3uq00j9uqh4l2me5xtb",
+        "projectId": "demo",
+        "clientName": "manish",
+        "clientImage": "",
+        "rating": 4,
+        "content": "ok ok",
+        "isVisible": true,
+        "sortOrder": 3,
+        "createdAt": "2026-06-26T05:20:41.090Z",
+        "updatedAt": "2026-06-26T05:20:41.090Z"
+      }
+    ],
+    "faqs": [],
+    "contacts": [],
+    "leads": [],
+    "formSubmissions": [],
+    "navigation": [],
+    "redirects": [],
+    "settings": null,
+    "emailSettings": {
+      "id": "cmquhb6he00abuqh4pwqr8nmd",
+      "projectId": "demo",
+      "smtpHost": "smtp.gmail.com",
+      "smtpPort": 587,
+      "smtpUser": "manish.yadav@difm.tech",
+      "smtpPass": "Manishyadav24@",
+      "formEmail": "manishyadav16c1@gmail.com",
+      "autoReplyTemplate": "hellos",
+      "adminAlerts": true,
+      "createdAt": "2026-06-26T05:16:51.218Z",
+      "updatedAt": "2026-06-26T05:18:36.140Z"
+    }
+  }
+}
